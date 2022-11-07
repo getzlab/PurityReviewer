@@ -1,0 +1,7 @@
+README.md
+setup.py
+PurityReviewers.egg-info/PKG-INFO
+PurityReviewers.egg-info/SOURCES.txt
+PurityReviewers.egg-info/dependency_links.txt
+PurityReviewers.egg-info/requires.txt
+PurityReviewers.egg-info/top_level.txt
