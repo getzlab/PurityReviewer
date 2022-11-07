@@ -1,3 +1,4 @@
 *.idea/*
 *.ipynb*
 *.egg-info*
+*__pychache__*
