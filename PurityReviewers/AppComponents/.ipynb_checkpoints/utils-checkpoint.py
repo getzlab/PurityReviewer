@@ -6,6 +6,7 @@ from plotly.subplots import make_subplots
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
 from JupyterReviewer.lib.plot_cnp import plot_acr_interactive
+import time
 
 csize = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
         '6': 171115067, '7': 159138663, '8': 146364022, '9': 141213431, '10': 135534747,
@@ -115,7 +116,7 @@ def parse_absolute_soln(rdata_path: str): # has to be a local path
                        'SCNA_likelihood', 
                        'Kar_likelihood', 
                        'SSNVs_likelihood']
-    
+    pandas2ri.activate()
     r_list_vector = robjects.r['load'](rdata_path)
     r_list_vector = robjects.r[r_list_vector[0]]
     r_data_id = r_list_vector.names[0]

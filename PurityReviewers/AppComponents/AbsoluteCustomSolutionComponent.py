@@ -10,7 +10,7 @@ import pickle
 from JupyterReviewer.Data import Data, DataAnnotation
 from JupyterReviewer.ReviewDataApp import ReviewDataApp, AppComponent
 from JupyterReviewer.DataTypes.GenericData import GenericData
-from JupyterReviewer.lib.plot_cnp import plot_acr_interactive
+from cnv_suite.visualize import plot_acr_interactive
 
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects

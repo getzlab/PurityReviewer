@@ -5,6 +5,7 @@ from JupyterReviewer.DataTypes.GenericData import GenericData
 import pandas as pd
 import numpy as np
 import time
+import warnings
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -84,15 +85,21 @@ class MatchedPurityReviewer(ReviewerTemplate):
                 try:
                     parse_absolute_soln(df.loc[i, rdata_fn_col]).to_csv(output_fn, sep='\t')
                     df.loc[i, f'local_absolute_rdata_as_tsv_downloaded'] = True
-                except Exception:
+                except Exception as e:
                     print(sys.exc_info()[2])
-                    warnings.warn(f'Failed to parse {df.loc[i, rdata_fn_col]}. No tsv available')
+                    warnings.warn(f'Failed to parse {df.loc[i, rdata_fn_col]}. No tsv available. Original error: {e}')
                     df.loc[i, f'local_absolute_rdata_as_tsv_downloaded'] = False
         else:
             print(f'rdata tsv directory already exists: {rdata_dir}')
             df[f'{rdata_fn_col}_as_tsv'] = ''
+            
+            # existing_files = os.listdir(rdata_dir)
+            # print(existing_files)
             for i, r in df.iterrows():
                 output_fn = f'{rdata_dir}/{i}.rdata.tsv'
+                # if output_fn not in existing_files:
+                #     raise ValueError(f'Missing file {output_fn}')
+                
                 df.loc[i, f'{rdata_fn_col}_as_tsv'] = output_fn
 
         # 2. Process cnp figures
