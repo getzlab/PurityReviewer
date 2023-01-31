@@ -106,9 +106,6 @@ def gen_cnp_figure(acs_fn,
                   ):
     
     seg_df = pd.read_csv(acs_fn, sep='\t', encoding='iso-8859-1')
-    # layout = go.Layout(
-    #         plot_bgcolor='rgba(0,0,0,0)',
-    #     )
 
     acr_fig, _, _, _ = plot_acr_interactive(seg_df, csize, sigmas=sigmas)
     

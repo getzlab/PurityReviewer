@@ -88,7 +88,9 @@ def gen_absolute_solutions_report_new_data(
             mut_fig_with_lines,
             purity,
             ploidy, 
-            [0]]
+            [0],
+            0
+            ]
 
 def gen_absolute_solutions_report_internal(
         data: GenericData,
@@ -105,7 +107,8 @@ def gen_absolute_solutions_report_internal(
         rdata_tsv_fn,
         cnp_fig_pkl_fn_col,
         mut_fig_pkl_fn_col)
-    output_data[-1] = selected_row_array
+    output_data[-2] = selected_row_array
+    output_data[-1] = selected_row_array[0]
     return output_data
 
 def gen_absolute_solutions_report_layout():
@@ -163,7 +166,8 @@ def gen_absolute_solutions_report_component():
             Output('mut-graph', 'figure'),
             Output('absolute-purity', 'children'),
             Output('absolute-ploidy', 'children'),
-            Output('absolute-rdata-select-table', 'selected_rows')
+            Output('absolute-rdata-select-table', 'selected_rows'),
+            Output('absolute-solution-idx', 'children')
         ],
     )
     
