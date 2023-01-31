@@ -16,6 +16,6 @@ pip install -e .
 
 # Tutorial
 
-See (purity_reviewer_example.ipynb)[https://github.com/getzlab/PurityReviewers/tree/master/example_notebooks/purity_reviewer_example.ipynb]
+See [purity_reviewer_example.ipynb](https://github.com/getzlab/PurityReviewers/tree/master/example_notebooks/purity_reviewer_example.ipynb)
 
-For more detailed tutorials, see (JupyterReviewer)[https://github.com/getzlab/JupyterReviewer]
+For more detailed tutorials, see [JupyterReviewer](https://github.com/getzlab/JupyterReviewer)
