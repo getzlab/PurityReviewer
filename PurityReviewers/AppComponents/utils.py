@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
-from cnv_suite.visualize import plot_acr_interactive, plot_acr_subplots
+from cnv_suite.visualize import plot_acr_interactive, plot_acr_subplots, add_background
 import time
 
 csize = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
@@ -108,22 +108,28 @@ def gen_cnp_figure(acs_fn,
     seg_df = pd.read_csv(acs_fn, sep='\t', encoding='iso-8859-1')
 
     acr_fig, _, _, _ = plot_acr_interactive(seg_df, csize, sigmas=sigmas)
-    
+
     hist_fig = plot_cnp_histogram(
         seg_df,
-        mu_major_col,
-        mu_minor_col,
-        length_col
+        mu_major_col=mu_major_col,
+        mu_minor_col=mu_minor_col,
+        length_col=length_col
     )
 
     cnp_fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_widths=[0.77, 0.25])
     for t in acr_fig.data:
         cnp_fig.add_trace(t, row=1, col=1)
 
+    # add_background(cnp_fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
+    cnp_fig.update_xaxes(acr_fig.layout.xaxis, row=1, col=1)
+    cnp_fig.update_yaxes(acr_fig.layout.yaxis, row=1, col=1)
+
     for t in hist_fig.data:
         cnp_fig.add_trace(t, row=1, col=2)
 
-    cnp_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    cnp_fig.update_xaxes(hist_fig.layout.xaxis, row=1, col=2)
+    cnp_fig.update_yaxes(hist_fig.layout.yaxis, row=1, col=2)
+    cnp_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
 
     return cnp_fig
 
