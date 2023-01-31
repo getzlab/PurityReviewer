@@ -191,10 +191,10 @@ class MatchedPurityReviewer(ReviewerTemplate):
     def set_default_autofill(self):
         self.add_autofill('Pick current ABSOLUTE solution', State('absolute-purity', 'children'), 'Purity')
         self.add_autofill('Pick current ABSOLUTE solution', State('absolute-ploidy', 'children'), 'Ploidy')
-        self.add_autofill('Pick current ABSOLUTE solution', fill_value='Absolute', annot_col='Method')
+        self.add_autofill('Pick current ABSOLUTE solution', fill_value='Absolute', annot_name='Method')
         self.add_autofill('Use current manual solution', State('custom-cnp-graph-purity', 'value'), 'Purity')
         self.add_autofill('Use current manual solution', State('custom-cnp-graph-ploidy', 'value'), 'Ploidy')
-        self.add_autofill('Use current manual solution', fill_value='Manual', annot_col='Method')
+        self.add_autofill('Use current manual solution', fill_value='Manual', annot_name='Method')
         
 
     def set_default_review_data_annotations(self):

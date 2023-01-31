@@ -14,7 +14,7 @@ from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 
 from JupyterReviewer.ReviewerTemplate import ReviewerTemplate
-from JupyterReviewer.lib.plot_cnp import plot_acr_interactive
+from cnv_suite.visualize import plot_acr_interactive
 
 from rpy2.robjects import r, pandas2ri
 import os

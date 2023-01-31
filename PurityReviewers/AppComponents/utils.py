@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
-from JupyterReviewer.lib.plot_cnp import plot_acr_interactive
+from cnv_suite.visualize import plot_acr_interactive, plot_acr_subplots
 import time
 
 csize = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
@@ -28,12 +28,17 @@ def calc_cn_levels(purity, ploidy, avg_cn=1):
     return cn_zero, cn_delta
 
 
-def plot_cnp_histogram(fig, row, col, 
-                       seg_df, 
-                       mu_major_col, 
-                       mu_minor_col, 
-                       length_col,
-                       max_mu=2, step=0.05):
+def plot_cnp_histogram(
+    seg_df,
+    mu_major_col,
+    mu_minor_col,
+    length_col,
+    max_mu=2,
+    step=0.05,
+    fig=None,
+    fig_row=None,
+    fig_col=None,
+):
     # bin over 
     mu_bins = np.arange(0, max_mu + step, step)
     mu_bins_counts = {b: 0 for b in mu_bins}
@@ -50,12 +55,20 @@ def plot_cnp_histogram(fig, row, col,
                                               columns=['count'])
     mu_bin_counts_df.index.name = 'mu_bin'
     mu_bin_counts_df = mu_bin_counts_df.reset_index()
-    
+    if fig is None:
+        fig = go.Figure()
     bar_trace = go.Bar(x=mu_bin_counts_df['count'], y=mu_bin_counts_df['mu_bin'], orientation='h')
-    fig.add_trace(bar_trace, row=row, col=col)
-    fig.update_xaxes(title_text='Length Count',  
-                     row=row, col=col)
+    if fig_row is not None:
+        fig.add_trace(bar_trace, row=fig_row, col=fig_col)
+        fig.update_xaxes(title_text='Length Count',
+                         row=fig_row, col=fig_col)
+    else:
+        fig.add_trace(bar_trace)
+        fig.update_xaxes(title_text='Length Count')
+
+
     fig.update_layout(showlegend=False)
+    return fig
       
 def gen_mut_figure(maf_fn,
                    chromosome_col='Chromosome', 
@@ -93,18 +106,28 @@ def gen_cnp_figure(acs_fn,
                   ):
     
     seg_df = pd.read_csv(acs_fn, sep='\t', encoding='iso-8859-1')
-    layout = go.Layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-        )
+    # layout = go.Layout(
+    #         plot_bgcolor='rgba(0,0,0,0)',
+    #     )
+
+    acr_fig, _, _, _ = plot_acr_interactive(seg_df, csize, sigmas=sigmas)
+    
+    hist_fig = plot_cnp_histogram(
+        seg_df,
+        mu_major_col,
+        mu_minor_col,
+        length_col
+    )
+
     cnp_fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_widths=[0.77, 0.25])
-    plot_acr_interactive(seg_df, cnp_fig, csize, sigmas=sigmas, row=0, col=0)
-    
-    plot_cnp_histogram(cnp_fig, 1, 2,
-                       seg_df,
-                       mu_major_col, 
-                       mu_minor_col, 
-                       length_col)
-    
+    for t in acr_fig.data:
+        cnp_fig.add_trace(t, row=1, col=1)
+
+    for t in hist_fig.data:
+        cnp_fig.add_trace(t, row=1, col=2)
+
+    cnp_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+
     return cnp_fig
 
 
