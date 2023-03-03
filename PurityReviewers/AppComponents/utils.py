@@ -14,6 +14,12 @@ csize = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 18
         '16': 90354753, '17': 81195210, '18': 78077248, '19': 59128983, '20': 63025520,
         '21': 48129895, '22': 51304566, '23': 156040895, '24': 57227415}
 
+cum_sum_csize = {}
+cum_sum = 0
+for chrom, size in csize.items():
+    cum_sum_csize[chrom] = cum_sum
+    cum_sum += size
+
 # cmesser: https://github.com/getzlab/cnv_suite/blob/f88d0bc285a880c2805553762ab939f12e662ad6/cnv_suite/utils/cnv_helper_methods.py
 def calc_cn_levels(purity, ploidy, avg_cn=1):
     """Calculate CN zero line and difference between CN levels based on given purity, ploidy and average.
@@ -85,7 +91,7 @@ def gen_mut_figure(maf_fn,
         maf_df[chromosome_col].replace({'X': 23, 'Y': 24}, inplace=True)
     maf_df[chromosome_col] = maf_df[chromosome_col].astype(str)
     
-    maf_df['new_position'] = maf_df.apply(lambda r: csize[r[chromosome_col]] + r[start_position_col], axis=1)
+    maf_df['new_position'] = maf_df.apply(lambda r: cum_sum_csize[r[chromosome_col]] + r[start_position_col], axis=1)
     maf_df['tumor_f'] = maf_df[alt_count_col] / (maf_df[alt_count_col] + maf_df[ref_count_col])
     
     # color by clonal/subclonal
