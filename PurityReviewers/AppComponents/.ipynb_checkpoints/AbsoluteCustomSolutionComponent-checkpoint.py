@@ -10,7 +10,8 @@ import pickle
 from JupyterReviewer.Data import Data, DataAnnotation
 from JupyterReviewer.ReviewDataApp import ReviewDataApp, AppComponent
 from JupyterReviewer.DataTypes.GenericData import GenericData
-from JupyterReviewer.lib.plot_cnp import plot_acr_interactive
+from cnv_suite.visualize import plot_acr_interactive
+from PurityReviewers.AppComponents.utils import gen_cnp_figure
 
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
@@ -35,11 +36,13 @@ def gen_custom_absolute_component(
     line_0,
     line_1,
     manual_input_source,
-    cnp_fig_pkl_fn_col,
+    acs_col
+    # cnp_fig_pkl_fn_col,
 ):
     data_df = data.df
     r = data_df.loc[data_id]
-    cnp_fig = pickle.load(open(r[cnp_fig_pkl_fn_col], "rb"))
+    # cnp_fig = pickle.load(open(r[cnp_fig_pkl_fn_col], "rb"))
+    cnp_fig = gen_cnp_figure(r[acs_col])
     
     if manual_input_source == "Manual Purity/ploidy":
         cn_0, cn_delta = calc_cn_levels(purity, ploidy)

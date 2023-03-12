@@ -101,6 +101,7 @@ def gen_mut_figure(maf_fn,
         fig = px.scatter(maf_df, x='new_position', y='tumor_f', marginal_y='histogram')
     fig.update_layout(plot_bgcolor='rgba(0,0,0,0)')
     fig.update_yaxes(range=[0, 1])
+    add_background(fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
     return fig
 
 def gen_cnp_figure(acs_fn,
@@ -126,13 +127,13 @@ def gen_cnp_figure(acs_fn,
     for t in acr_fig.data:
         cnp_fig.add_trace(t, row=1, col=1)
 
-    # add_background(cnp_fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
+    add_background(cnp_fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
     cnp_fig.update_xaxes(acr_fig.layout.xaxis, row=1, col=1)
     cnp_fig.update_yaxes(acr_fig.layout.yaxis, row=1, col=1)
 
     for t in hist_fig.data:
         cnp_fig.add_trace(t, row=1, col=2)
-
+        
     cnp_fig.update_xaxes(hist_fig.layout.xaxis, row=1, col=2)
     cnp_fig.update_yaxes(hist_fig.layout.yaxis, row=1, col=2)
     cnp_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False)

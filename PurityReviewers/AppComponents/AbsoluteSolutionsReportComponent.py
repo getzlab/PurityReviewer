@@ -11,6 +11,7 @@ from JupyterReviewer.Data import Data, DataAnnotation
 from JupyterReviewer.ReviewDataApp import ReviewDataApp, AppComponent
 from JupyterReviewer.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
+from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure
 
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
@@ -32,24 +33,23 @@ def gen_absolute_solutions_report_new_data(
     data: GenericData,
     data_id, 
     selected_row_array, # dash app parameters come first
-    rdata_tsv_fn,
-    cnp_fig_pkl_fn_col,
-    mut_fig_pkl_fn_col
+    rdata_fn_col,
+    acs_col, 
+    maf_col,
+    mut_fig_hover_data,
 ):
     
     data_df = data.df
     r = data_df.loc[data_id]
     try:
-        absolute_rdata_df = pd.read_csv(r[rdata_tsv_fn], sep='\t', index_col=0)
+        absolute_rdata_df = parse_absolute_soln(r[rdata_fn_col])
     except:
         absolute_rdata_df = pd.DataFrame()
 
-    absolute_rdata_df = pd.read_csv(r[rdata_tsv_fn], sep='\t', index_col=0)
     absolute_rdata_df = absolute_rdata_df.round(2)
-
-    cnp_fig = pickle.load(open(r[cnp_fig_pkl_fn_col], "rb"))
-
-    mut_fig = pickle.load(open(r[mut_fig_pkl_fn_col], "rb"))
+    
+    cnp_fig = gen_cnp_figure(r[acs_col])
+    mut_fig = gen_mut_figure(r[maf_col], hover_data=mut_fig_hover_data)
 
 
     # add 1 and 0 lines
@@ -96,17 +96,20 @@ def gen_absolute_solutions_report_internal(
         data: GenericData,
         data_id,
         selected_row_array,  # dash app parameters come first
-        rdata_tsv_fn,
-        cnp_fig_pkl_fn_col,
-        mut_fig_pkl_fn_col
+        rdata_fn_col,
+        acs_col, 
+        maf_col,
+        mut_fig_hover_data,
 ):
     output_data = gen_absolute_solutions_report_new_data(
         data,
         data_id,
         selected_row_array,  # dash app parameters come first
-        rdata_tsv_fn,
-        cnp_fig_pkl_fn_col,
-        mut_fig_pkl_fn_col)
+        rdata_fn_col,
+        acs_col, 
+        maf_col,
+        mut_fig_hover_data,
+    )
     output_data[-2] = selected_row_array
     output_data[-1] = selected_row_array[0]
     return output_data

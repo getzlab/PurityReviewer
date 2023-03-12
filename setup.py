@@ -31,6 +31,6 @@ setuptools.setup(
                         'JupyterReviewer==0.0.6',
                         'rpy2==3.5.6',
                         'firecloud-dalmatian',
-                        'cnv_suite'
+                        'cnv_suite==0.1.1'
                        ]
 )   
