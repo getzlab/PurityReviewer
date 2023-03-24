@@ -27,7 +27,7 @@ import sys
 
 from PurityReviewers.AppComponents.AbsoluteSolutionsReportComponent import gen_absolute_solutions_report_component
 from PurityReviewers.AppComponents.AbsoluteCustomSolutionComponent import gen_absolute_custom_solution_component
-from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, parse_absolute_soln, validate_purity, validate_ploidy
+from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, parse_absolute_soln, validate_purity, validate_ploidy, csize
 
 from JupyterReviewer.AppComponents.DataTableComponents import gen_annotated_data_info_table_component
     
@@ -146,6 +146,7 @@ class MatchedPurityReviewer(ReviewerTemplate):
                        maf_col,
                        rdata_fn_col,
                        mut_fig_hover_data=[],
+                       csize=csize,
                        ) -> ReviewDataApp:
         """
         Parameters
@@ -172,6 +173,7 @@ class MatchedPurityReviewer(ReviewerTemplate):
             acs_col=acs_col, 
             maf_col=maf_col,
             mut_fig_hover_data=mut_fig_hover_data,
+            csize=csize,
         )
 
         app.add_component(
@@ -184,7 +186,8 @@ class MatchedPurityReviewer(ReviewerTemplate):
         app.add_component(
             gen_absolute_custom_solution_component(),
             # cnp_fig_pkl_fn_col='cnp_figs_pkl'
-            acs_col=acs_col
+            acs_col=acs_col,
+            csize=csize,
         )
 
         return app

@@ -13,12 +13,14 @@ csize = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 18
         '11': 135006516, '12': 133851895, '13': 115169878, '14': 107349540, '15': 102531392,
         '16': 90354753, '17': 81195210, '18': 78077248, '19': 59128983, '20': 63025520,
         '21': 48129895, '22': 51304566, '23': 156040895, '24': 57227415}
-
-cum_sum_csize = {}
-cum_sum = 0
-for chrom, size in csize.items():
-    cum_sum_csize[chrom] = cum_sum
-    cum_sum += size
+    
+def get_cum_sum_csize(csize):
+    cum_sum_csize = {}
+    cum_sum = 0
+    for chrom, size in csize.items():
+        cum_sum_csize[chrom] = cum_sum
+        cum_sum += size
+    return cum_sum_csize
 
 # cmesser: https://github.com/getzlab/cnv_suite/blob/f88d0bc285a880c2805553762ab939f12e662ad6/cnv_suite/utils/cnv_helper_methods.py
 def calc_cn_levels(purity, ploidy, avg_cn=1):
@@ -76,15 +78,19 @@ def plot_cnp_histogram(
     fig.update_layout(showlegend=False)
     return fig
       
-def gen_mut_figure(maf_fn,
-                   chromosome_col='Chromosome', 
-                   start_position_col='Start_position', 
-                   hugo_symbol_col='Hugo_Symbol',
-                   variant_type_col='Variant_Type',
-                   alt_count_col='t_alt_count',
-                   ref_count_col='t_ref_count',
-                   hover_data=[]  # TODO: include
-                  ):
+def gen_mut_figure(
+    maf_fn,
+    chromosome_col='Chromosome', 
+    start_position_col='Start_position', 
+    hugo_symbol_col='Hugo_Symbol',
+    variant_type_col='Variant_Type',
+    alt_count_col='t_alt_count',
+    ref_count_col='t_ref_count',
+    hover_data=[],  # TODO: include
+    csize=csize,
+):
+    cum_sum_csize = get_cum_sum_csize(csize)
+    
     fig = make_subplots(rows=1, cols=1)
     maf_df = pd.read_csv(maf_fn, sep='\t', encoding='iso-8859-1')
     if maf_df[chromosome_col].dtype == 'object':
@@ -109,7 +115,7 @@ def gen_cnp_figure(acs_fn,
                    mu_major_col='mu.major', 
                    mu_minor_col='mu.minor', 
                    length_col='length',
-#                    csize=csize
+                   csize=csize
                   ):
     
     seg_df = pd.read_csv(acs_fn, sep='\t', encoding='iso-8859-1')

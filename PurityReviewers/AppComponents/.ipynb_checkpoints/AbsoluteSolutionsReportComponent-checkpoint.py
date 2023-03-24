@@ -11,7 +11,7 @@ from JupyterReviewer.Data import Data, DataAnnotation
 from JupyterReviewer.ReviewDataApp import ReviewDataApp, AppComponent
 from JupyterReviewer.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure
+from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, csize
 
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
@@ -37,6 +37,7 @@ def gen_absolute_solutions_report_new_data(
     acs_col, 
     maf_col,
     mut_fig_hover_data,
+    csize
 ):
     
     data_df = data.df
@@ -48,8 +49,8 @@ def gen_absolute_solutions_report_new_data(
 
     absolute_rdata_df = absolute_rdata_df.round(2)
     
-    cnp_fig = gen_cnp_figure(r[acs_col])
-    mut_fig = gen_mut_figure(r[maf_col], hover_data=mut_fig_hover_data)
+    cnp_fig = gen_cnp_figure(r[acs_col], csize=csize)
+    mut_fig = gen_mut_figure(r[maf_col], hover_data=mut_fig_hover_data, csize=csize)
 
 
     # add 1 and 0 lines
@@ -93,13 +94,14 @@ def gen_absolute_solutions_report_new_data(
             ]
 
 def gen_absolute_solutions_report_internal(
-        data: GenericData,
-        data_id,
-        selected_row_array,  # dash app parameters come first
-        rdata_fn_col,
-        acs_col, 
-        maf_col,
-        mut_fig_hover_data,
+    data: GenericData,
+    data_id,
+    selected_row_array,  # dash app parameters come first
+    rdata_fn_col,
+    acs_col, 
+    maf_col,
+    mut_fig_hover_data,
+    csize
 ):
     output_data = gen_absolute_solutions_report_new_data(
         data,
@@ -109,6 +111,7 @@ def gen_absolute_solutions_report_internal(
         acs_col, 
         maf_col,
         mut_fig_hover_data,
+        csize=csize,
     )
     output_data[-2] = selected_row_array
     output_data[-1] = selected_row_array[0]
