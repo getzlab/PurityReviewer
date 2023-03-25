@@ -7,6 +7,7 @@ from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
 from cnv_suite.visualize import plot_acr_interactive, plot_acr_subplots, add_background
 import time
+import os
 
 csize = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
         '6': 171115067, '7': 159138663, '8': 146364022, '9': 141213431, '10': 135534747,
@@ -185,3 +186,24 @@ def validate_purity(x):
 
 def validate_ploidy(x):
     return (x >=0)
+
+
+def download_data(file_to_download_path, full_local_path):
+    dalmatian.getblob(file_to_download_path).download_to_filename(full_local_path)
+
+def download_rdata(rdata_fn_s, rdata_dir, force_download=False):
+    
+    if not os.path.isdir(rdata_dir):
+        os.mkdir(rdata_dir)
+    
+    local_rdata_dict = {}
+    for pair_id, rdata_fn in rdata_fn_s.items():
+        absolute_rdata_gsurl = rdata_fn
+        
+        local_absolute_rdata_fn = f'{rdata_dir}/{pair_id}.absolute.rdata'
+        if not os.path.exists(local_absolute_rdata_fn) or force_download:
+            download_data(absolute_rdata_gsurl, local_absolute_rdata_fn)
+        
+        local_rdata_dict[pair_id] = local_absolute_rdata_fn
+    
+    return pd.Series(local_rdata_dict)

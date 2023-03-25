@@ -11,7 +11,7 @@ from JupyterReviewer.Data import Data, DataAnnotation
 from JupyterReviewer.ReviewDataApp import ReviewDataApp, AppComponent
 from JupyterReviewer.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, csize
+from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, csize, parse_absolute_soln
 
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
@@ -44,7 +44,8 @@ def gen_absolute_solutions_report_new_data(
     r = data_df.loc[data_id]
     try:
         absolute_rdata_df = parse_absolute_soln(r[rdata_fn_col])
-    except:
+    except Exception as e:
+        print(e)
         absolute_rdata_df = pd.DataFrame()
 
     absolute_rdata_df = absolute_rdata_df.round(2)
