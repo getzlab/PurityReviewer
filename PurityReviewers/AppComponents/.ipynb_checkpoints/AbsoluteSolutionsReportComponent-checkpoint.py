@@ -37,13 +37,16 @@ def gen_absolute_solutions_report_new_data(
     acs_col, 
     maf_col,
     mut_fig_hover_data,
-    csize
+    csize,
+    custom_parse_absolute_soln=None
 ):
     
     data_df = data.df
     r = data_df.loc[data_id]
+    
+    parse_absolute_soln_func = custom_parse_absolute_soln if custom_parse_absolute_soln is not None else parse_absolute_soln
     try:
-        absolute_rdata_df = parse_absolute_soln(r[rdata_fn_col])
+        absolute_rdata_df = parse_absolute_soln_func(r[rdata_fn_col])
     except Exception as e:
         print(e)
         absolute_rdata_df = pd.DataFrame()
@@ -102,7 +105,8 @@ def gen_absolute_solutions_report_internal(
     acs_col, 
     maf_col,
     mut_fig_hover_data,
-    csize
+    csize,
+    custom_parse_absolute_soln=None,
 ):
     output_data = gen_absolute_solutions_report_new_data(
         data,
@@ -113,6 +117,7 @@ def gen_absolute_solutions_report_internal(
         maf_col,
         mut_fig_hover_data,
         csize=csize,
+        custom_parse_absolute_soln=custom_parse_absolute_soln,
     )
     output_data[-2] = selected_row_array
     output_data[-1] = selected_row_array[0]

@@ -147,6 +147,7 @@ class MatchedPurityReviewer(ReviewerTemplate):
                        rdata_fn_col,
                        mut_fig_hover_data=[],
                        csize=csize,
+                       custom_parse_absolute_soln=None,
                        ) -> ReviewDataApp:
         """
         Parameters
@@ -174,6 +175,7 @@ class MatchedPurityReviewer(ReviewerTemplate):
             maf_col=maf_col,
             mut_fig_hover_data=mut_fig_hover_data,
             csize=csize,
+            custom_parse_absolute_soln=custom_parse_absolute_soln,
         )
 
         app.add_component(
