@@ -178,7 +178,7 @@ def parse_absolute_soln(rdata_path: str): # has to be a local path
     mod_tab_df['SCNA_likelihood'] = mode_tab[:, 15]
     mod_tab_df['Kar_likelihood'] = mode_tab[:, 17]
     mod_tab_df['SSNVs_likelihood'] = mode_tab[:, 20]
-    end = time.time()
+
     return mod_tab_df
     
 def validate_purity(x):
