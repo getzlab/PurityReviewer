@@ -108,6 +108,7 @@ class ManualPurityReviewer(ReviewerTemplate):
                        maf_col,
                        rdata_tsv_fn='local_absolute_rdata_as_tsv',
                        cnp_fig_pkl_fn_col='cnp_figs_pkl',
+                       step_size=None
                        ) -> ReviewDataApp:
         """
         Parameters
@@ -135,8 +136,9 @@ class ManualPurityReviewer(ReviewerTemplate):
         )
 
         app.add_component(
-            gen_absolute_custom_solution_component(),
-            cnp_fig_pkl_fn_col='cnp_figs_pkl'
+            gen_absolute_custom_solution_component(step_size=step_size),
+            cnp_fig_pkl_fn_col='cnp_figs_pkl',
+            step_size=step_size
         )
         
         return app

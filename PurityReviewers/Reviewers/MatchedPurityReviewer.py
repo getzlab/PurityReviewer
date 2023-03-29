@@ -146,6 +146,7 @@ class MatchedPurityReviewer(ReviewerTemplate):
                        maf_col,
                        rdata_fn_col,
                        mut_fig_hover_data=[],
+                       step_size=None
                        ) -> ReviewDataApp:
         """
         Parameters
@@ -182,9 +183,10 @@ class MatchedPurityReviewer(ReviewerTemplate):
         )
 
         app.add_component(
-            gen_absolute_custom_solution_component(),
+            gen_absolute_custom_solution_component(step_size=step_size),
             # cnp_fig_pkl_fn_col='cnp_figs_pkl'
-            acs_col=acs_col
+            acs_col=acs_col,
+            step_size=step_size
         )
 
         return app
