@@ -5,8 +5,10 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
-from cnv_suite.visualize import plot_acr_interactive, plot_acr_subplots, add_background
+from cnv_suite.visualize import plot_acr_interactive, plot_acr_subplots, add_background, update_cnv_scatter_sigma_toggle
+from cnv_suite import calc_avg_cn
 import time
+from functools import lru_cache
 
 csize = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
         '6': 171115067, '7': 159138663, '8': 146364022, '9': 141213431, '10': 135534747,
@@ -20,18 +22,21 @@ for chrom, size in csize.items():
     cum_sum_csize[chrom] = cum_sum
     cum_sum += size
 
-# cmesser: https://github.com/getzlab/cnv_suite/blob/f88d0bc285a880c2805553762ab939f12e662ad6/cnv_suite/utils/cnv_helper_methods.py
-def calc_cn_levels(purity, ploidy, avg_cn=1):
-    """Calculate CN zero line and difference between CN levels based on given purity, ploidy and average.
-    :param purity: sample tumor purity
-    :param ploidy: sample tumor ploidy
-    :param avg_cn: average CN value across genome, default 1
-    :return: (CN_zero_value, CN_delta_value)
-    """
-    avg_ploidy = purity * ploidy + 2 * (1 - purity)
-    cn_delta = avg_cn * 2 * purity / avg_ploidy
-    cn_zero = avg_cn * 2 * (1 - purity) / avg_ploidy
-    return cn_zero, cn_delta
+
+@lru_cache(maxsize=32)
+def cached_read_csv(fn, **kwargs):
+    return pd.read_csv(fn, **kwargs)
+
+
+def listToTuple(function):
+    """Allows functions with a list as input to be cached by turning them into immutable tuples"""
+    def wrapper(*args, **kwargs):
+        args = [tuple(x) if type(x) == list else x for x in args]
+        kwargs = {k: tuple(v) if type(v) == list else v for k, v in kwargs.items()}
+        result = function(*args, **kwargs)
+        result = tuple(result) if type(result) == list else result
+        return result
+    return wrapper
 
 
 def plot_cnp_histogram(
@@ -72,10 +77,11 @@ def plot_cnp_histogram(
         fig.add_trace(bar_trace)
         fig.update_xaxes(title_text='Length Count')
 
-
     fig.update_layout(showlegend=False)
     return fig
-      
+
+@listToTuple
+@lru_cache(maxsize=32)
 def gen_mut_figure(maf_fn,
                    chromosome_col='Chromosome', 
                    start_position_col='Start_position', 
@@ -83,10 +89,12 @@ def gen_mut_figure(maf_fn,
                    variant_type_col='Variant_Type',
                    alt_count_col='t_alt_count',
                    ref_count_col='t_ref_count',
-                   hover_data=[]  # TODO: include
+                   hover_data=None  # TODO: include
                   ):
-    fig = make_subplots(rows=1, cols=1)
-    maf_df = pd.read_csv(maf_fn, sep='\t', encoding='iso-8859-1')
+
+    hover_data = [] if hover_data is None else list(hover_data)
+
+    maf_df = cached_read_csv(maf_fn, sep='\t', encoding='iso-8859-1')
     if maf_df[chromosome_col].dtype == 'object':
         maf_df[chromosome_col].replace({'X': 23, 'Y': 24}, inplace=True)
     maf_df[chromosome_col] = maf_df[chromosome_col].astype(str)
@@ -94,11 +102,8 @@ def gen_mut_figure(maf_fn,
     maf_df['new_position'] = maf_df.apply(lambda r: cum_sum_csize[r[chromosome_col]] + r[start_position_col], axis=1)
     maf_df['tumor_f'] = maf_df[alt_count_col] / (maf_df[alt_count_col] + maf_df[ref_count_col])
     
-    # color by clonal/subclonal
-    if len(hover_data) > 0:
-        fig = px.scatter(maf_df, x='new_position', y='tumor_f', marginal_y='histogram', hover_data=hover_data)
-    else:
-        fig = px.scatter(maf_df, x='new_position', y='tumor_f', marginal_y='histogram')
+    fig = px.scatter(maf_df, x='new_position', y='tumor_f', marginal_y='histogram', hover_data=hover_data)
+
     fig.update_layout(plot_bgcolor='rgba(0,0,0,0)')
     fig.update_yaxes(range=[0, 1])
     add_background(fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
@@ -111,10 +116,24 @@ def gen_cnp_figure(acs_fn,
                    length_col='length',
 #                    csize=csize
                   ):
-    
-    seg_df = pd.read_csv(acs_fn, sep='\t', encoding='iso-8859-1')
+    cnp_fig = _gen_cnp_figure_cache(acs_fn, mu_major_col, mu_minor_col, length_col)
+    if not sigmas:
+        update_cnv_scatter_sigma_toggle(cnp_fig, sigmas)
 
-    acr_fig, _, _, _ = plot_acr_interactive(seg_df, csize, sigmas=sigmas)
+    return cnp_fig
+
+
+@lru_cache(maxsize=32)
+def _gen_cnp_figure_cache(acs_fn,
+                          mu_major_col,
+                          mu_minor_col,
+                          length_col):
+    seg_df = cached_read_csv(acs_fn, sep='\t', encoding='iso-8859-1')
+
+    # normalize seg file (important to do before estimating ploidy)
+    seg_df[['tau','sigma.tau','mu.minor','sigma.minor','mu.major','sigma.major']] = seg_df[['tau','sigma.tau','mu.minor','sigma.minor','mu.major','sigma.major']] / calc_avg_cn(seg_df)
+
+    acr_fig, _, _, _ = plot_acr_interactive(seg_df, csize)
 
     hist_fig = plot_cnp_histogram(
         seg_df,
@@ -133,7 +152,7 @@ def gen_cnp_figure(acs_fn,
 
     for t in hist_fig.data:
         cnp_fig.add_trace(t, row=1, col=2)
-        
+
     cnp_fig.update_xaxes(hist_fig.layout.xaxis, row=1, col=2)
     cnp_fig.update_yaxes(hist_fig.layout.yaxis, row=1, col=2)
     cnp_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
