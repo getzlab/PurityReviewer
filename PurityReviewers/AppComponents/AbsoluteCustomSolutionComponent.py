@@ -11,6 +11,8 @@ from JupyterReviewer.Data import Data, DataAnnotation
 from JupyterReviewer.ReviewDataApp import ReviewDataApp, AppComponent
 from JupyterReviewer.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
+from cnv_suite import calc_cn_levels
+
 from PurityReviewers.AppComponents.utils import gen_cnp_figure
 
 from rpy2.robjects import r, pandas2ri
@@ -19,7 +21,6 @@ import os
 import pickle
 from typing import Union, List, Dict
 import sys
-from .utils import calc_cn_levels
 
 
 MANUAL_INPUT_SOURCE = ["Use slider", "Manual Purity/ploidy", "Manual 0/1 line"]
