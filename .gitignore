@@ -1,4 +1,4 @@
 *.idea/*
-*.ipynb*
 *.egg-info*
-*__pychache__*
+__pychache__
+.ipynb_checkpoints
