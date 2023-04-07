@@ -8,7 +8,9 @@ import rpy2.robjects as robjects
 from cnv_suite.visualize import plot_acr_interactive, plot_acr_subplots, add_background, update_cnv_scatter_sigma_toggle
 from cnv_suite import calc_avg_cn
 import time
+import os
 from functools import lru_cache
+import dalmatian
 
 csize = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
         '6': 171115067, '7': 159138663, '8': 146364022, '9': 141213431, '10': 135534747,
@@ -16,11 +18,13 @@ csize = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 18
         '16': 90354753, '17': 81195210, '18': 78077248, '19': 59128983, '20': 63025520,
         '21': 48129895, '22': 51304566, '23': 156040895, '24': 57227415}
 
-cum_sum_csize = {}
-cum_sum = 0
-for chrom, size in csize.items():
-    cum_sum_csize[chrom] = cum_sum
-    cum_sum += size
+def get_cum_sum_csize(csize):
+    cum_sum_csize = {}
+    cum_sum = 0
+    for chrom, size in csize.items():
+        cum_sum_csize[chrom] = cum_sum
+        cum_sum += size
+    return cum_sum_csize
 
 
 @lru_cache(maxsize=32)
@@ -83,8 +87,8 @@ def plot_cnp_histogram(
 @listToTuple
 @lru_cache(maxsize=32)
 def gen_mut_figure(maf_fn,
-                   chromosome_col='Chromosome', 
-                   start_position_col='Start_position', 
+                   chromosome_col='Chromosome',
+                   start_position_col='Start_position',
                    hugo_symbol_col='Hugo_Symbol',
                    variant_type_col='Variant_Type',
                    alt_count_col='t_alt_count',
@@ -93,6 +97,7 @@ def gen_mut_figure(maf_fn,
                   ):
 
     hover_data = [] if hover_data is None else list(hover_data)
+    cum_sum_csize = get_cum_sum_csize(csize)
 
     maf_df = cached_read_csv(maf_fn, sep='\t', encoding='iso-8859-1')
     if maf_df[chromosome_col].dtype == 'object':
@@ -114,7 +119,7 @@ def gen_cnp_figure(acs_fn,
                    mu_major_col='mu.major', 
                    mu_minor_col='mu.minor', 
                    length_col='length',
-#                    csize=csize
+                   csize=csize
                   ):
     cnp_fig = _gen_cnp_figure_cache(acs_fn, mu_major_col, mu_minor_col, length_col)
     if not sigmas:
@@ -190,7 +195,7 @@ def parse_absolute_soln(rdata_path: str): # has to be a local path
     mod_tab_df['SCNA_likelihood'] = mode_tab[:, 15]
     mod_tab_df['Kar_likelihood'] = mode_tab[:, 17]
     mod_tab_df['SSNVs_likelihood'] = mode_tab[:, 20]
-    end = time.time()
+
     return mod_tab_df
     
 def validate_purity(x):
@@ -198,3 +203,24 @@ def validate_purity(x):
 
 def validate_ploidy(x):
     return (x >=0)
+
+
+def download_data(file_to_download_path, full_local_path):
+    dalmatian.getblob(file_to_download_path).download_to_filename(full_local_path)
+
+def download_rdata(rdata_fn_s, rdata_dir, force_download=False):
+
+    if not os.path.isdir(rdata_dir):
+        os.mkdir(rdata_dir)
+
+    local_rdata_dict = {}
+    for pair_id, rdata_fn in rdata_fn_s.items():
+        absolute_rdata_gsurl = rdata_fn
+
+        local_absolute_rdata_fn = f'{rdata_dir}/{pair_id}.absolute.rdata'
+        if not os.path.exists(local_absolute_rdata_fn) or force_download:
+            download_data(absolute_rdata_gsurl, local_absolute_rdata_fn)
+
+        local_rdata_dict[pair_id] = local_absolute_rdata_fn
+
+    return pd.Series(local_rdata_dict)

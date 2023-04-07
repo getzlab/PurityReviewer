@@ -13,7 +13,7 @@ from JupyterReviewer.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
 from cnv_suite import calc_cn_levels
 
-from PurityReviewers.AppComponents.utils import gen_cnp_figure
+from PurityReviewers.AppComponents.utils import gen_cnp_figure, csize
 
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
@@ -38,15 +38,16 @@ def gen_custom_absolute_component(
     line_1,
     manual_input_source,
     acs_col,
-    step_size=None
-    # cnp_fig_pkl_fn_col
+    step_size=None,
+    csize=csize
+
 ):
     if step_size is None:
         step_size = 0.01
     data_df = data.df
     r = data_df.loc[data_id]
     # cnp_fig = pickle.load(open(r[cnp_fig_pkl_fn_col], "rb"))
-    cnp_fig = gen_cnp_figure(r[acs_col])
+    cnp_fig = gen_cnp_figure(r[acs_col], csize=csize)
     
     if manual_input_source == "Manual Purity/ploidy":
         cn_0, cn_delta = calc_cn_levels(purity, ploidy)
