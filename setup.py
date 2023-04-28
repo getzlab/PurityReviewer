@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="PurityReviewers",
-    version="0.0.2",
+    version="0.0.3",
     author="Claudia Chu",
     author_email="cchu@broadinstitute.org",
     description="Suite of purity review dashboards",
@@ -28,10 +28,9 @@ setuptools.setup(
                         'pandas==1.5.2',
                         'setuptools',
                         'natsort',
-                        'JupyterReviewer==0.0.6',
+                        'JupyterReviewer==0.0.7',
                         'rpy2==3.4.2',
                         'firecloud-dalmatian',
-                        'frozendict',
                         'cnv_suite==0.1.1'
                        ]
 )   

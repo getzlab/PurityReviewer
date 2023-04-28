@@ -1,26 +1,12 @@
-import pandas as pd
-import numpy as np
-from dash import dcc, html, dash_table
-from dash.dependencies import Input, Output, State
+from dash import dcc, html
+from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
-from scipy.stats import beta
-import pickle
-
-from JupyterReviewer.Data import Data, DataAnnotation
-from JupyterReviewer.ReviewDataApp import ReviewDataApp, AppComponent
-from JupyterReviewer.DataTypes.GenericData import GenericData
-from cnv_suite.visualize import plot_acr_interactive
-from cnv_suite import calc_cn_levels
 
 from PurityReviewers.AppComponents.utils import gen_cnp_figure
-
-from rpy2.robjects import r, pandas2ri
-import rpy2.robjects as robjects
-import os
-import pickle
-from typing import Union, List, Dict
-import sys
+from JupyterReviewer.ReviewDataApp import AppComponent
+from JupyterReviewer.DataTypes.GenericData import GenericData
+from cnv_suite import calc_cn_levels
 
 
 MANUAL_INPUT_SOURCE = ["Use slider", "Manual Purity/ploidy", "Manual 0/1 line"]
@@ -46,7 +32,6 @@ def gen_custom_absolute_component(
         step_size = 0.01
     data_df = data.df
     r = data_df.loc[data_id]
-    # cnp_fig = pickle.load(open(r[cnp_fig_pkl_fn_col], "rb"))
     cnp_fig = gen_cnp_figure(r[acs_col], csize=csize)
     
     if manual_input_source == "Manual Purity/ploidy":
