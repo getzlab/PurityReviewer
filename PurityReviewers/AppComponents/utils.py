@@ -10,13 +10,16 @@ from cnv_suite import calc_avg_cn
 import time
 import os
 from functools import lru_cache
+import functools
+from frozendict import frozendict
 import dalmatian
 
-csize = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
-        '6': 171115067, '7': 159138663, '8': 146364022, '9': 141213431, '10': 135534747,
-        '11': 135006516, '12': 133851895, '13': 115169878, '14': 107349540, '15': 102531392,
-        '16': 90354753, '17': 81195210, '18': 78077248, '19': 59128983, '20': 63025520,
-        '21': 48129895, '22': 51304566, '23': 156040895, '24': 57227415}
+
+CSIZE_DEFAULT = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
+                 '6': 171115067, '7': 159138663, '8': 146364022, '9': 141213431, '10': 135534747,
+                 '11': 135006516, '12': 133851895, '13': 115169878, '14': 107349540, '15': 102531392,
+                 '16': 90354753, '17': 81195210, '18': 78077248, '19': 59128983, '20': 63025520,
+                 '21': 48129895, '22': 51304566, '23': 156040895, '24': 57227415}
 
 def get_cum_sum_csize(csize):
     cum_sum_csize = {}
@@ -32,15 +35,17 @@ def cached_read_csv(fn, **kwargs):
     return pd.read_csv(fn, **kwargs)
 
 
-def listToTuple(function):
-    """Allows functions with a list as input to be cached by turning them into immutable tuples"""
-    def wrapper(*args, **kwargs):
-        args = [tuple(x) if type(x) == list else x for x in args]
-        kwargs = {k: tuple(v) if type(v) == list else v for k, v in kwargs.items()}
-        result = function(*args, **kwargs)
-        result = tuple(result) if type(result) == list else result
-        return result
-    return wrapper
+def freezeargs(func):
+    """Transform mutable dictionary into immutable and lists into tuples
+
+    Useful to be compatible with cache
+    """
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        args = tuple([frozendict(arg) if isinstance(arg, dict) else (tuple(arg) if isinstance(arg, list) else arg) for arg in args])
+        kwargs = {k: frozendict(v) if isinstance(v, dict) else (tuple(v) if isinstance(v, list) else v) for k, v in kwargs.items()}
+        return func(*args, **kwargs)
+    return wrapped
 
 
 def plot_cnp_histogram(
@@ -84,7 +89,7 @@ def plot_cnp_histogram(
     fig.update_layout(showlegend=False)
     return fig
 
-@listToTuple
+@freezeargs
 @lru_cache(maxsize=32)
 def gen_mut_figure(maf_fn,
                    chromosome_col='Chromosome',
@@ -93,10 +98,12 @@ def gen_mut_figure(maf_fn,
                    variant_type_col='Variant_Type',
                    alt_count_col='t_alt_count',
                    ref_count_col='t_ref_count',
-                   hover_data=None  # TODO: include
+                   hover_data=None,
+                   csize=None
                   ):
 
     hover_data = [] if hover_data is None else list(hover_data)
+    csize = CSIZE_DEFAULT if csize is None else csize
     cum_sum_csize = get_cum_sum_csize(csize)
 
     maf_df = cached_read_csv(maf_fn, sep='\t', encoding='iso-8859-1')
@@ -119,20 +126,23 @@ def gen_cnp_figure(acs_fn,
                    mu_major_col='mu.major', 
                    mu_minor_col='mu.minor', 
                    length_col='length',
-                   csize=csize
+                   csize=None
                   ):
-    cnp_fig = _gen_cnp_figure_cache(acs_fn, mu_major_col, mu_minor_col, length_col)
+    csize = CSIZE_DEFAULT if csize is None else csize
+    cnp_fig = _gen_cnp_figure_cache(acs_fn, mu_major_col, mu_minor_col, length_col, csize)
     if not sigmas:
         update_cnv_scatter_sigma_toggle(cnp_fig, sigmas)
 
     return cnp_fig
 
 
+@freezeargs
 @lru_cache(maxsize=32)
 def _gen_cnp_figure_cache(acs_fn,
                           mu_major_col,
                           mu_minor_col,
-                          length_col):
+                          length_col,
+                          csize):
     seg_df = cached_read_csv(acs_fn, sep='\t', encoding='iso-8859-1')
 
     # normalize seg file (important to do before estimating ploidy)

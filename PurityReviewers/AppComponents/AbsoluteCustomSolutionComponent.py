@@ -13,7 +13,7 @@ from JupyterReviewer.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
 from cnv_suite import calc_cn_levels
 
-from PurityReviewers.AppComponents.utils import gen_cnp_figure, csize
+from PurityReviewers.AppComponents.utils import gen_cnp_figure
 
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
@@ -39,7 +39,7 @@ def gen_custom_absolute_component(
     manual_input_source,
     acs_col,
     step_size=None,
-    csize=csize
+    csize=None
 
 ):
     if step_size is None:

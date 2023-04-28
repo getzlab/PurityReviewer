@@ -31,6 +31,7 @@ setuptools.setup(
                         'JupyterReviewer==0.0.6',
                         'rpy2==3.4.2',
                         'firecloud-dalmatian',
+                        'frozendict',
                         'cnv_suite==0.1.1'
                        ]
 )   

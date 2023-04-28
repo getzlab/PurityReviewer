@@ -11,7 +11,7 @@ from JupyterReviewer.Data import Data, DataAnnotation
 from JupyterReviewer.ReviewDataApp import ReviewDataApp, AppComponent
 from JupyterReviewer.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, csize, parse_absolute_soln
+from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, parse_absolute_soln
 
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
@@ -37,7 +37,7 @@ def gen_absolute_solutions_report_new_data(
     acs_col, 
     maf_col,
     mut_fig_hover_data,
-    csize,
+    csize=None,
     custom_parse_absolute_soln=None
 ):
     
@@ -105,7 +105,7 @@ def gen_absolute_solutions_report_internal(
     acs_col, 
     maf_col,
     mut_fig_hover_data,
-    csize,
+    csize=None,
     custom_parse_absolute_soln=None,
 ):
     output_data = gen_absolute_solutions_report_new_data(
