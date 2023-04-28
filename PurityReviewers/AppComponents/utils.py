@@ -1,18 +1,18 @@
+import os
 import pandas as pd
 import numpy as np
+from functools import lru_cache
+import dalmatian
+
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from rpy2.robjects import r, pandas2ri
+from rpy2.robjects import pandas2ri
 import rpy2.robjects as robjects
-from cnv_suite.visualize import plot_acr_interactive, plot_acr_subplots, add_background, update_cnv_scatter_sigma_toggle
+from cnv_suite.visualize import plot_acr_interactive, add_background, update_cnv_scatter_sigma_toggle
 from cnv_suite import calc_avg_cn
-import time
-import os
-from functools import lru_cache
-import functools
-from frozendict import frozendict
-import dalmatian
+
+from JupyterReviewer.AppComponents.utils import freezeargs, cached_read_csv
 
 
 CSIZE_DEFAULT = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
@@ -21,6 +21,7 @@ CSIZE_DEFAULT = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276,
                  '16': 90354753, '17': 81195210, '18': 78077248, '19': 59128983, '20': 63025520,
                  '21': 48129895, '22': 51304566, '23': 156040895, '24': 57227415}
 
+
 def get_cum_sum_csize(csize):
     cum_sum_csize = {}
     cum_sum = 0
@@ -28,24 +29,6 @@ def get_cum_sum_csize(csize):
         cum_sum_csize[chrom] = cum_sum
         cum_sum += size
     return cum_sum_csize
-
-
-@lru_cache(maxsize=32)
-def cached_read_csv(fn, **kwargs):
-    return pd.read_csv(fn, **kwargs)
-
-
-def freezeargs(func):
-    """Transform mutable dictionary into immutable and lists into tuples
-
-    Useful to be compatible with cache
-    """
-    @functools.wraps(func)
-    def wrapped(*args, **kwargs):
-        args = tuple([frozendict(arg) if isinstance(arg, dict) else (tuple(arg) if isinstance(arg, list) else arg) for arg in args])
-        kwargs = {k: frozendict(v) if isinstance(v, dict) else (tuple(v) if isinstance(v, list) else v) for k, v in kwargs.items()}
-        return func(*args, **kwargs)
-    return wrapped
 
 
 def plot_cnp_histogram(
@@ -89,6 +72,7 @@ def plot_cnp_histogram(
     fig.update_layout(showlegend=False)
     return fig
 
+
 @freezeargs
 @lru_cache(maxsize=32)
 def gen_mut_figure(maf_fn,
@@ -120,6 +104,7 @@ def gen_mut_figure(maf_fn,
     fig.update_yaxes(range=[0, 1])
     add_background(fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
     return fig
+
 
 def gen_cnp_figure(acs_fn,
                    sigmas=True, 
@@ -207,9 +192,11 @@ def parse_absolute_soln(rdata_path: str): # has to be a local path
     mod_tab_df['SSNVs_likelihood'] = mode_tab[:, 20]
 
     return mod_tab_df
-    
+
+
 def validate_purity(x):
     return (x >=0) and (x <= 1)
+
 
 def validate_ploidy(x):
     return (x >=0)
@@ -217,6 +204,7 @@ def validate_ploidy(x):
 
 def download_data(file_to_download_path, full_local_path):
     dalmatian.getblob(file_to_download_path).download_to_filename(full_local_path)
+
 
 def download_rdata(rdata_fn_s, rdata_dir, force_download=False):
 
