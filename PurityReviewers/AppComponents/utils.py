@@ -1,20 +1,27 @@
+import os
 import pandas as pd
 import numpy as np
+from functools import lru_cache
+import dalmatian
+
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from rpy2.robjects import r, pandas2ri
+from rpy2.robjects import pandas2ri
 import rpy2.robjects as robjects
-from cnv_suite.visualize import plot_acr_interactive, plot_acr_subplots, add_background
-import time
-import os
+from cnv_suite.visualize import plot_acr_interactive, add_background, update_cnv_scatter_sigma_toggle
+from cnv_suite import calc_avg_cn
 
-csize = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
-        '6': 171115067, '7': 159138663, '8': 146364022, '9': 141213431, '10': 135534747,
-        '11': 135006516, '12': 133851895, '13': 115169878, '14': 107349540, '15': 102531392,
-        '16': 90354753, '17': 81195210, '18': 78077248, '19': 59128983, '20': 63025520,
-        '21': 48129895, '22': 51304566, '23': 156040895, '24': 57227415}
-    
+from JupyterReviewer.AppComponents.utils import freezeargs, cached_read_csv
+
+
+CSIZE_DEFAULT = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
+                 '6': 171115067, '7': 159138663, '8': 146364022, '9': 141213431, '10': 135534747,
+                 '11': 135006516, '12': 133851895, '13': 115169878, '14': 107349540, '15': 102531392,
+                 '16': 90354753, '17': 81195210, '18': 78077248, '19': 59128983, '20': 63025520,
+                 '21': 48129895, '22': 51304566, '23': 156040895, '24': 57227415}
+
+
 def get_cum_sum_csize(csize):
     cum_sum_csize = {}
     cum_sum = 0
@@ -22,19 +29,6 @@ def get_cum_sum_csize(csize):
         cum_sum_csize[chrom] = cum_sum
         cum_sum += size
     return cum_sum_csize
-
-# cmesser: https://github.com/getzlab/cnv_suite/blob/f88d0bc285a880c2805553762ab939f12e662ad6/cnv_suite/utils/cnv_helper_methods.py
-def calc_cn_levels(purity, ploidy, avg_cn=1):
-    """Calculate CN zero line and difference between CN levels based on given purity, ploidy and average.
-    :param purity: sample tumor purity
-    :param ploidy: sample tumor ploidy
-    :param avg_cn: average CN value across genome, default 1
-    :return: (CN_zero_value, CN_delta_value)
-    """
-    avg_ploidy = purity * ploidy + 2 * (1 - purity)
-    cn_delta = avg_cn * 2 * purity / avg_ploidy
-    cn_zero = avg_cn * 2 * (1 - purity) / avg_ploidy
-    return cn_zero, cn_delta
 
 
 def plot_cnp_histogram(
@@ -75,25 +69,28 @@ def plot_cnp_histogram(
         fig.add_trace(bar_trace)
         fig.update_xaxes(title_text='Length Count')
 
-
     fig.update_layout(showlegend=False)
     return fig
-      
-def gen_mut_figure(
-    maf_fn,
-    chromosome_col='Chromosome', 
-    start_position_col='Start_position', 
-    hugo_symbol_col='Hugo_Symbol',
-    variant_type_col='Variant_Type',
-    alt_count_col='t_alt_count',
-    ref_count_col='t_ref_count',
-    hover_data=[],  # TODO: include
-    csize=csize,
-):
+
+
+@freezeargs
+@lru_cache(maxsize=32)
+def gen_mut_figure(maf_fn,
+                   chromosome_col='Chromosome',
+                   start_position_col='Start_position',
+                   hugo_symbol_col='Hugo_Symbol',
+                   variant_type_col='Variant_Type',
+                   alt_count_col='t_alt_count',
+                   ref_count_col='t_ref_count',
+                   hover_data=None,
+                   csize=None
+                  ):
+
+    hover_data = [] if hover_data is None else list(hover_data)
+    csize = CSIZE_DEFAULT if csize is None else csize
     cum_sum_csize = get_cum_sum_csize(csize)
-    
-    fig = make_subplots(rows=1, cols=1)
-    maf_df = pd.read_csv(maf_fn, sep='\t', encoding='iso-8859-1')
+
+    maf_df = cached_read_csv(maf_fn, sep='\t', encoding='iso-8859-1')
     if maf_df[chromosome_col].dtype == 'object':
         maf_df[chromosome_col].replace({'X': 23, 'Y': 24}, inplace=True)
     maf_df[chromosome_col] = maf_df[chromosome_col].astype(str)
@@ -101,27 +98,42 @@ def gen_mut_figure(
     maf_df['new_position'] = maf_df.apply(lambda r: cum_sum_csize[r[chromosome_col]] + r[start_position_col], axis=1)
     maf_df['tumor_f'] = maf_df[alt_count_col] / (maf_df[alt_count_col] + maf_df[ref_count_col])
     
-    # color by clonal/subclonal
-    if len(hover_data) > 0:
-        fig = px.scatter(maf_df, x='new_position', y='tumor_f', marginal_y='histogram', hover_data=hover_data)
-    else:
-        fig = px.scatter(maf_df, x='new_position', y='tumor_f', marginal_y='histogram')
+    fig = px.scatter(maf_df, x='new_position', y='tumor_f', marginal_y='histogram', hover_data=hover_data)
+
     fig.update_layout(plot_bgcolor='rgba(0,0,0,0)')
     fig.update_yaxes(range=[0, 1])
     add_background(fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
     return fig
+
 
 def gen_cnp_figure(acs_fn,
                    sigmas=True, 
                    mu_major_col='mu.major', 
                    mu_minor_col='mu.minor', 
                    length_col='length',
-                   csize=csize
+                   csize=None
                   ):
-    
-    seg_df = pd.read_csv(acs_fn, sep='\t', encoding='iso-8859-1')
+    csize = CSIZE_DEFAULT if csize is None else csize
+    cnp_fig = _gen_cnp_figure_cache(acs_fn, mu_major_col, mu_minor_col, length_col, csize)
+    if not sigmas:
+        update_cnv_scatter_sigma_toggle(cnp_fig, sigmas)
 
-    acr_fig, _, _, _ = plot_acr_interactive(seg_df, csize, sigmas=sigmas)
+    return cnp_fig
+
+
+@freezeargs
+@lru_cache(maxsize=32)
+def _gen_cnp_figure_cache(acs_fn,
+                          mu_major_col,
+                          mu_minor_col,
+                          length_col,
+                          csize):
+    seg_df = cached_read_csv(acs_fn, sep='\t', encoding='iso-8859-1')
+
+    # normalize seg file (important to do before estimating ploidy)
+    seg_df[['tau','sigma.tau','mu.minor','sigma.minor','mu.major','sigma.major']] = seg_df[['tau','sigma.tau','mu.minor','sigma.minor','mu.major','sigma.major']] / calc_avg_cn(seg_df)
+
+    acr_fig, _, _, _ = plot_acr_interactive(seg_df, csize)
 
     hist_fig = plot_cnp_histogram(
         seg_df,
@@ -140,7 +152,7 @@ def gen_cnp_figure(acs_fn,
 
     for t in hist_fig.data:
         cnp_fig.add_trace(t, row=1, col=2)
-        
+
     cnp_fig.update_xaxes(hist_fig.layout.xaxis, row=1, col=2)
     cnp_fig.update_yaxes(hist_fig.layout.yaxis, row=1, col=2)
     cnp_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
@@ -180,9 +192,11 @@ def parse_absolute_soln(rdata_path: str): # has to be a local path
     mod_tab_df['SSNVs_likelihood'] = mode_tab[:, 20]
 
     return mod_tab_df
-    
+
+
 def validate_purity(x):
     return (x >=0) and (x <= 1)
+
 
 def validate_ploidy(x):
     return (x >=0)
@@ -191,19 +205,20 @@ def validate_ploidy(x):
 def download_data(file_to_download_path, full_local_path):
     dalmatian.getblob(file_to_download_path).download_to_filename(full_local_path)
 
+
 def download_rdata(rdata_fn_s, rdata_dir, force_download=False):
-    
+
     if not os.path.isdir(rdata_dir):
         os.mkdir(rdata_dir)
-    
+
     local_rdata_dict = {}
     for pair_id, rdata_fn in rdata_fn_s.items():
         absolute_rdata_gsurl = rdata_fn
-        
+
         local_absolute_rdata_fn = f'{rdata_dir}/{pair_id}.absolute.rdata'
         if not os.path.exists(local_absolute_rdata_fn) or force_download:
             download_data(absolute_rdata_gsurl, local_absolute_rdata_fn)
-        
+
         local_rdata_dict[pair_id] = local_absolute_rdata_fn
-    
+
     return pd.Series(local_rdata_dict)
