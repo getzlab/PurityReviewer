@@ -18,4 +18,4 @@ pip install -e .
 
 See [purity_reviewer_example.ipynb](https://github.com/getzlab/PurityReviewers/tree/master/example_notebooks/purity_reviewer_example.ipynb)
 
-For more detailed tutorials, see [JupyterReviewer](https://github.com/getzlab/JupyterReviewer)
+For more detailed tutorials, see [AnnoMate](https://github.com/getzlab/AnnoMate)
