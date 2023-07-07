@@ -1,9 +1,12 @@
-from dash import dcc, html
-from dash.dependencies import Input, Output
+import pandas as pd
+import numpy as np
+from dash import dcc, html, dash_table
+from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
+from scipy.stats import beta
+import pickle
 
-<<<<<<< HEAD
 from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
@@ -17,12 +20,6 @@ import pickle
 from typing import Union, List, Dict
 import sys
 from .utils import calc_cn_levels
-=======
-from PurityReviewers.AppComponents.utils import gen_cnp_figure
-from JupyterReviewer.ReviewDataApp import AppComponent
-from JupyterReviewer.DataTypes.GenericData import GenericData
-from cnv_suite import calc_cn_levels
->>>>>>> fd8e1b101683e014a3cc1474b694fb4c32ff2ceb
 
 
 MANUAL_INPUT_SOURCE = ["Use slider", "Manual Purity/ploidy", "Manual 0/1 line"]
@@ -40,14 +37,12 @@ def gen_custom_absolute_component(
     line_1,
     manual_input_source,
     acs_col,
-    step_size=None,
-    csize=None
-
+    csize=csize
+    # cnp_fig_pkl_fn_col,
 ):
-    if step_size is None:
-        step_size = 0.01
     data_df = data.df
     r = data_df.loc[data_id]
+    # cnp_fig = pickle.load(open(r[cnp_fig_pkl_fn_col], "rb"))
     cnp_fig = gen_cnp_figure(r[acs_col], csize=csize)
     
     if manual_input_source == "Manual Purity/ploidy":
@@ -65,16 +60,16 @@ def gen_custom_absolute_component(
         elif manual_input_source == "Manual 0/1 line":
             slider_value = [line_0, line_1]
         
-        purity = round((1 - (float(line_0) / float(line_1))) / step_size) * step_size
-        ploidy = round(((2 * (1 - line_0) * (1 - purity)) / (purity * line_0)) / step_size) * step_size  # tau, not tau_g
+        purity = round(1 - (float(line_0) / float(line_1)), 2)
+        ploidy = round((2 * (1 - line_0) * (1 - purity)) / (purity * line_0), 2)  # tau, not tau_g
         
     # add 1 and 0 lines
     cnp_fig_with_lines = go.Figure(cnp_fig)
     i = 0
     line_height = line_0
-    line_difference = line_1 - line_0
+    step_size = line_1 - line_0
     while line_height < 2:
-        line_height = line_0 + (line_difference * i)
+        line_height = line_0 + (step_size * i)
         cnp_fig_with_lines.add_hline(y=line_height,
                                      line_dash="dash",
                                      line_color='black',
@@ -92,9 +87,7 @@ def gen_custom_absolute_component(
         line_1
     ]
     
-def gen_absolute_custom_solution_layout(step_size=None):
-    if step_size is None:
-        step_size = 0.01
+def gen_absolute_custom_solution_layout(step_size=0.01):
     return [
             html.Div(
                 [
@@ -199,12 +192,12 @@ def gen_absolute_custom_solution_layout(step_size=None):
             )
         ]
 
-def gen_absolute_custom_solution_component(step_size=None):
+def gen_absolute_custom_solution_component():
     # Adding another component to prebuilt dash board
     
     return AppComponent(
         'Manual Purity',
-        layout=gen_absolute_custom_solution_layout(step_size=step_size),
+        layout=gen_absolute_custom_solution_layout(),
         new_data_callback=gen_custom_absolute_component,
         internal_callback=gen_custom_absolute_component,
         callback_input=[

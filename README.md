@@ -43,4 +43,4 @@ See `PurityReviewers/AppComponents` for pre-built components and their customiza
 
 For customizing annotations, adding new components, and other features, see [Intro_to_Reviewers.ipynb](https://github.com/getzlab/JupyterReviewer/blob/master/example_notebooks/Intro_to_Reviewers.ipynb).
 
-For creating your own prebuilt reviewer, see [Developer_Jupyter_Reviewer_Tutorial.ipynb](https://github.com/getzlab/JupyterReviewer/blob/master/example_notebooks/Developer_Jupyter_Reviewer_Tutorial.ipynb).
+For more detailed tutorials, see [AnnoMate](https://github.com/getzlab/AnnoMate)

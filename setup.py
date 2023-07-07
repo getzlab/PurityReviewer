@@ -28,7 +28,11 @@ setuptools.setup(
                         'pandas==1.5.2',
                         'setuptools',
                         'natsort',
+<<<<<<< HEAD
+                        'AnnoMate==0.0.1',
+=======
                         'JupyterReviewer==0.0.7',
+>>>>>>> fd8e1b101683e014a3cc1474b694fb4c32ff2ceb
                         'rpy2==3.4.2',
                         'firecloud-dalmatian',
                         'cnv_suite'
