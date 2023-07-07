@@ -7,9 +7,9 @@ import plotly.graph_objects as go
 from scipy.stats import beta
 import pickle
 
-from JupyterReviewer.Data import Data, DataAnnotation
-from JupyterReviewer.ReviewDataApp import ReviewDataApp, AppComponent
-from JupyterReviewer.DataTypes.GenericData import GenericData
+from AnnoMate.Data import Data, DataAnnotation
+from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
+from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
 from PurityReviewers.AppComponents.utils import gen_cnp_figure, csize
 

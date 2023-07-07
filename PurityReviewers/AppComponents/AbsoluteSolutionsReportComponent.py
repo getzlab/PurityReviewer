@@ -7,9 +7,9 @@ import plotly.graph_objects as go
 from scipy.stats import beta
 import pickle
 
-from JupyterReviewer.Data import Data, DataAnnotation
-from JupyterReviewer.ReviewDataApp import ReviewDataApp, AppComponent
-from JupyterReviewer.DataTypes.GenericData import GenericData
+from AnnoMate.Data import Data, DataAnnotation
+from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
+from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
 from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, csize, parse_absolute_soln
 
@@ -120,7 +120,7 @@ def gen_absolute_solutions_report_internal(
         custom_parse_absolute_soln=custom_parse_absolute_soln,
     )
     output_data[-2] = selected_row_array
-    output_data[-1] = selected_row_array[0]
+    output_data[-1] = selected_row_array[0] + 1 # 1 indexed
     return output_data
 
 def gen_absolute_solutions_report_layout():

@@ -1,6 +1,8 @@
-from JupyterReviewer.Data import Data, DataAnnotation
-from JupyterReviewer.ReviewDataApp import ReviewDataApp, AppComponent
-from JupyterReviewer.DataTypes.GenericData import GenericData
+from AnnoMate.Data import Data, DataAnnotation
+from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
+from AnnoMate.DataTypes.GenericData import GenericData
+from AnnoMate.AppComponents.DataTableComponents import gen_annotated_data_info_table_component
+from AnnoMate.ReviewerTemplate import ReviewerTemplate
 
 import pandas as pd
 import numpy as np
@@ -13,8 +15,7 @@ from dash import html
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 
-from JupyterReviewer.ReviewerTemplate import ReviewerTemplate
-from JupyterReviewer.lib.plot_cnp import plot_acr_interactive
+from cnv_suite.visualize import plot_acr_interactive
 
 from rpy2.robjects import r, pandas2ri
 import os
@@ -23,8 +24,6 @@ from typing import List, Dict
 
 from PurityReviewers.AppComponents.AbsoluteCustomSolutionComponent import gen_absolute_custom_solution_component
 from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, parse_absolute_soln, validate_purity, validate_ploidy
-
-from JupyterReviewer.AppComponents.DataTableComponents import gen_annotated_data_info_table_component
 
 
 class ManualPurityReviewer(ReviewerTemplate):
@@ -152,9 +151,15 @@ class ManualPurityReviewer(ReviewerTemplate):
         self.add_review_data_annotation(
             annot_name='Ploidy',
             review_data_annotation=DataAnnotation('float', validate_input=validate_ploidy))
+        self.add_review_data_annotation(
+            annot_name='Notes', 
+            review_data_annotation=DataAnnotation(
+                annot_value_type='string')
+        )
 
     def set_default_review_data_annotations_app_display(self):
-        self.add_review_data_annotations_app_display(annot_name='Purity', app_display_type='number')
-        self.add_review_data_annotations_app_display(annot_name='Ploidy', app_display_type='number')
+        self.add_annotation_display_component(annot_name='Purity', annot_display_component=adc.NumberAnnotationDisplay())
+        self.add_annotation_display_component(annot_name='Ploidy', annot_display_component=adc.NumberAnnotationDisplay())
+        self.add_annotation_display_component(annot_name='Notes', annot_display_component=adc.TextAreaAnnotationDisplay())
 
         

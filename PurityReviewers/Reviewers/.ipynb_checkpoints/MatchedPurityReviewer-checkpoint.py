@@ -1,6 +1,9 @@
-from JupyterReviewer.Data import Data, DataAnnotation
-from JupyterReviewer.ReviewDataApp import ReviewDataApp, AppComponent
-from JupyterReviewer.DataTypes.GenericData import GenericData
+from AnnoMate.Data import Data, DataAnnotation
+from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
+from AnnoMate.DataTypes.GenericData import GenericData
+from AnnoMate.ReviewerTemplate import ReviewerTemplate
+from AnnoMate.AppComponents.DataTableComponents import gen_annotated_data_info_table_component
+import AnnoMate.AnnotationDisplayComponent as adc
 
 import pandas as pd
 import numpy as np
@@ -16,8 +19,6 @@ from dash.dependencies import Input, Output, State
 from dash import Dash, dash_table
 import dash_bootstrap_components as dbc
 
-from JupyterReviewer.ReviewerTemplate import ReviewerTemplate
-
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
 import os
@@ -28,8 +29,6 @@ import sys
 from PurityReviewers.AppComponents.AbsoluteSolutionsReportComponent import gen_absolute_solutions_report_component
 from PurityReviewers.AppComponents.AbsoluteCustomSolutionComponent import gen_absolute_custom_solution_component
 from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, parse_absolute_soln, validate_purity, validate_ploidy, csize
-
-from JupyterReviewer.AppComponents.DataTableComponents import gen_annotated_data_info_table_component
     
 
 class MatchedPurityReviewer(ReviewerTemplate):
@@ -233,10 +232,10 @@ class MatchedPurityReviewer(ReviewerTemplate):
         )
 
     def set_default_review_data_annotations_app_display(self):
-        self.add_review_data_annotations_app_display(annot_name='Purity', app_display_type='number')
-        self.add_review_data_annotations_app_display(annot_name='Ploidy', app_display_type='number')
-        self.add_review_data_annotations_app_display(annot_name='Method', app_display_type='select')
-        self.add_review_data_annotations_app_display(annot_name='Absolute_solution_idx', app_display_type='number')
-        self.add_review_data_annotations_app_display(annot_name='Notes', app_display_type='textarea')
+        self.add_annotation_display_component(annot_name='Purity', annot_display_component=adc.NumberAnnotationDisplay())
+        self.add_annotation_display_component(annot_name='Ploidy', annot_display_component=adc.NumberAnnotationDisplay())
+        self.add_annotation_display_component(annot_name='Method', annot_display_component=adc.SelectAnnotationDisplay())
+        self.add_annotation_display_component(annot_name='Absolute_solution_idx', annot_display_component=adc.NumberAnnotationDisplay())
+        self.add_annotation_display_component(annot_name='Notes', annot_display_component=adc.TextAreaAnnotationDisplay())
 
         
