@@ -3,12 +3,11 @@ from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 
-<<<<<<< HEAD
 from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewers.AppComponents.utils import gen_cnp_figure, csize
+from PurityReviewers.AppComponents.utils import gen_cnp_figure, CSIZE_DEFAULT
 
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
@@ -16,14 +15,7 @@ import os
 import pickle
 from typing import Union, List, Dict
 import sys
-from .utils import calc_cn_levels
-=======
-from PurityReviewers.AppComponents.utils import gen_cnp_figure
-from JupyterReviewer.ReviewDataApp import AppComponent
-from JupyterReviewer.DataTypes.GenericData import GenericData
 from cnv_suite import calc_cn_levels
->>>>>>> fd8e1b101683e014a3cc1474b694fb4c32ff2ceb
-
 
 MANUAL_INPUT_SOURCE = ["Use slider", "Manual Purity/ploidy", "Manual 0/1 line"]
 
@@ -48,7 +40,7 @@ def gen_custom_absolute_component(
         step_size = 0.01
     data_df = data.df
     r = data_df.loc[data_id]
-    cnp_fig = gen_cnp_figure(r[acs_col], csize=csize)
+    cnp_fig = gen_cnp_figure(r[acs_col], csize=CSIZE_DEFAULT)
     
     if manual_input_source == "Manual Purity/ploidy":
         cn_0, cn_delta = calc_cn_levels(purity, ploidy)
