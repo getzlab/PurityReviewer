@@ -1,24 +1,14 @@
 import pandas as pd
-import numpy as np
 from dash import dcc, html, dash_table
-from dash.dependencies import Input, Output, State
-import dash_bootstrap_components as dbc
+from dash.dependencies import Input, Output
 import plotly.graph_objects as go
-from scipy.stats import beta
-import pickle
 
 from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, csize, parse_absolute_soln
+from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln
 
-from rpy2.robjects import r, pandas2ri
-import rpy2.robjects as robjects
-import os
-import pickle
-from typing import Union, List, Dict
-import sys
 
 absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
                        'sigma_H', 
@@ -37,7 +27,7 @@ def gen_absolute_solutions_report_new_data(
     acs_col, 
     maf_col,
     mut_fig_hover_data,
-    csize,
+    csize=None,
     custom_parse_absolute_soln=None
 ):
     
@@ -53,9 +43,8 @@ def gen_absolute_solutions_report_new_data(
 
     absolute_rdata_df = absolute_rdata_df.round(2)
     
-    cnp_fig = gen_cnp_figure(r[acs_col], csize=csize)
-    mut_fig = gen_mut_figure(r[maf_col], hover_data=mut_fig_hover_data, csize=csize)
-
+    cnp_fig = gen_cnp_figure(r[acs_col], csize=CSIZE_DEFAULT)
+    mut_fig = gen_mut_figure(r[maf_col], hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
 
     # add 1 and 0 lines
     mut_fig_with_lines = go.Figure(mut_fig)
@@ -97,6 +86,7 @@ def gen_absolute_solutions_report_new_data(
             0
             ]
 
+
 def gen_absolute_solutions_report_internal(
     data: GenericData,
     data_id,
@@ -105,7 +95,7 @@ def gen_absolute_solutions_report_internal(
     acs_col, 
     maf_col,
     mut_fig_hover_data,
-    csize,
+    csize=None,
     custom_parse_absolute_soln=None,
 ):
     output_data = gen_absolute_solutions_report_new_data(
@@ -116,12 +106,13 @@ def gen_absolute_solutions_report_internal(
         acs_col, 
         maf_col,
         mut_fig_hover_data,
-        csize=csize,
+        csize=CSIZE_DEFAULT,
         custom_parse_absolute_soln=custom_parse_absolute_soln,
     )
     output_data[-2] = selected_row_array
     output_data[-1] = selected_row_array[0] + 1 # 1 indexed
     return output_data
+
 
 def gen_absolute_solutions_report_layout():
     return html.Div(
@@ -163,6 +154,7 @@ def gen_absolute_solutions_report_layout():
             dcc.Graph(id='mut-graph', figure={})
         ]
     )
+
 
 def gen_absolute_solutions_report_component():
     

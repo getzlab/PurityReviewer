@@ -28,7 +28,7 @@ import sys
 
 from PurityReviewers.AppComponents.AbsoluteSolutionsReportComponent import gen_absolute_solutions_report_component
 from PurityReviewers.AppComponents.AbsoluteCustomSolutionComponent import gen_absolute_custom_solution_component
-from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, parse_absolute_soln, validate_purity, validate_ploidy, csize
+from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, parse_absolute_soln, validate_purity, validate_ploidy, CSIZE_DEFAULT
 
 
 class MatchedPurityReviewer(ReviewerTemplate):
@@ -93,7 +93,7 @@ class MatchedPurityReviewer(ReviewerTemplate):
             acs_col=acs_col, 
             maf_col=maf_col,
             mut_fig_hover_data=mut_fig_hover_data,
-            csize=csize,
+            csize=CSIZE_DEFAULT,
             custom_parse_absolute_soln=custom_parse_absolute_soln,
         )
 
@@ -108,7 +108,7 @@ class MatchedPurityReviewer(ReviewerTemplate):
             gen_absolute_custom_solution_component(step_size=step_size),
             acs_col=acs_col,
             step_size=step_size,
-            csize=csize,
+            csize=CSIZE_DEFAULT,
         )
 
         return app

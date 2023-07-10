@@ -12,7 +12,7 @@ import rpy2.robjects as robjects
 from cnv_suite.visualize import plot_acr_interactive, add_background, update_cnv_scatter_sigma_toggle
 from cnv_suite import calc_avg_cn
 
-from JupyterReviewer.AppComponents.utils import freezeargs, cached_read_csv
+from AnnoMate.AppComponents.utils import freezeargs, cached_read_csv
 
 
 CSIZE_DEFAULT = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
