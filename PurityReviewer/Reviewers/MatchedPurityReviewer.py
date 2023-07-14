@@ -26,9 +26,9 @@ import pickle
 from typing import Union, List, Dict
 import sys
 
-from PurityReviewers.AppComponents.AbsoluteSolutionsReportComponent import gen_absolute_solutions_report_component
-from PurityReviewers.AppComponents.AbsoluteCustomSolutionComponent import gen_absolute_custom_solution_component
-from PurityReviewers.AppComponents.utils import gen_cnp_figure, gen_mut_figure, parse_absolute_soln, validate_purity, validate_ploidy, CSIZE_DEFAULT
+from PurityReviewer.AppComponents.AbsoluteSolutionsReportComponent import gen_absolute_solutions_report_component
+from PurityReviewer.AppComponents.AbsoluteCustomSolutionComponent import gen_absolute_custom_solution_component
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, parse_absolute_soln, validate_purity, validate_ploidy, CSIZE_DEFAULT
 
 
 class MatchedPurityReviewer(ReviewerTemplate):

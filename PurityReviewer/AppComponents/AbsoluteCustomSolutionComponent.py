@@ -7,7 +7,7 @@ from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewers.AppComponents.utils import gen_cnp_figure, CSIZE_DEFAULT
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, CSIZE_DEFAULT
 
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
