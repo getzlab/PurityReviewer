@@ -9,8 +9,9 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from rpy2.robjects import pandas2ri
 import rpy2.robjects as robjects
-from cnv_suite.visualize import plot_acr_interactive, add_background, update_cnv_scatter_sigma_toggle
+from cnv_suite.visualize import plot_acr_interactive, add_background, update_cnv_scatter_sigma_toggle, prepare_df
 from cnv_suite import calc_avg_cn
+from natsort import natsorted
 
 from AnnoMate.AppComponents.utils import freezeargs, cached_read_csv
 
@@ -90,6 +91,10 @@ def gen_mut_figure(maf_fn,
     csize = CSIZE_DEFAULT if csize is None else csize
     cum_sum_csize = get_cum_sum_csize(csize)
 
+    chr_order = natsorted(list(csize.keys()))
+    chrom_start = {chrom: start for (chrom, start) in
+                   zip(np.append(chr_order, 'Z'), np.cumsum([0] + [csize[a] for a in chr_order]))}
+
     maf_df = cached_read_csv(maf_fn, sep='\t', encoding='iso-8859-1')
     if maf_df[chromosome_col].dtype == 'object':
         maf_df[chromosome_col].replace({'X': 23, 'Y': 24}, inplace=True)
@@ -101,9 +106,31 @@ def gen_mut_figure(maf_fn,
     fig = px.scatter(maf_df, x='new_position', y='tumor_f', marginal_y='histogram', hover_data=hover_data)
 
     fig.update_layout(plot_bgcolor='rgba(0,0,0,0)')
+
+    fig.update_xaxes(
+        showgrid=False,
+        zeroline=False,
+        tickvals=np.asarray(list(chrom_start.values())[:-1]) + np.asarray(list(csize.values())) / 2,
+        ticktext=chr_order,
+        tickfont_size=10,
+        tickangle=0,
+        range=[0, chrom_start['Z']]
+    )
+    fig.update_xaxes(title_text="Chromosome")
+                      
+                      
     fig.update_yaxes(range=[0, 1])
-    add_background(fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
-    return fig
+
+    final_fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_widths=[0.77, 0.25])
+    for t in fig.data:
+        final_fig.add_trace(t, row=1, col=1)
+
+    add_background(final_fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
+    final_fig.update_xaxes(fig.layout.xaxis, row=1, col=1)
+    final_fig.update_yaxes(fig.layout.yaxis, row=1, col=1)
+    final_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
+    
+    return final_fig
 
 
 def gen_cnp_figure(acs_fn,
