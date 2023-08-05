@@ -1,3 +1,6 @@
+"""
+Displays a allelic copy ratio profile and a table of solutions from ABSOLUTE (Carter, 2014). The rows of the table can be selected, and the copy number profile plot will be updated with the corresponding ABSOLUTE "comb" solution. 
+"""
 import pandas as pd
 from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output

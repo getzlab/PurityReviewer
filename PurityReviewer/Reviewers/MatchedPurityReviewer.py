@@ -1,3 +1,6 @@
+"""
+A reviewer dashboard that displays generic sample data and a allelic copy ratio profile for a given sample. The allelic copy ratio profile is linked to a table with the solutions from ABSOLUTE (Carter, 2014), where you can select a row and the corresponding ABSOLUTE "comb" solution will be plotted over the allelic copy ratio plot.
+"""
 from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData

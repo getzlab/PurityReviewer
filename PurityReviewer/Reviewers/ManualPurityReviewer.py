@@ -1,3 +1,6 @@
+"""
+A reviewer dashboard that displays generic sample data and a allelic copy ratio profile for a given sample. The allelic copy ratio profile includes sliders and inputs to manually set the 0 and 1 line corresponding to the integer assignment of the genomic segments and automatically calculates a purity. 
+"""
 from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
