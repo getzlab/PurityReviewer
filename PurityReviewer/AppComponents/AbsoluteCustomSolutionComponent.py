@@ -37,8 +37,65 @@ def gen_custom_absolute_component(
     acs_col,
     step_size=None,
     csize=None
-
 ):
+    """
+    Callback function that updates copy number plots when a new sample/pair is selected 
+    
+    Parameters
+    ==========
+    data: GenericData
+        Data object storing the relevant data to review
+        
+    data_id: str
+        Name of the object being reviewed
+        
+    slider_value: List[float]
+        List of length 2 where the 0-index entry is the current value of the 0-line, and the 1-index entry is the current value of the 1-line
+
+    purity: float
+        Current value for purity
+
+    ploidy: float
+        Current value for ploidy
+
+    line_0: float
+        Current value of the 0-line
+
+    line_1: float
+        Current value of the 1-line
+
+    manual_input_source: str ["Manual Purity/ploidy", "Use slider", "Manual 0/1 line"]
+        Which mode to set get the purity solution and replot the copy number profile with the corresponding comb
+        
+    acs_col: str
+        Column name in data with path to seg file from alleliccapseg or other tsv with allelic copy ratio measurements.
+
+    step_size: float, default=0.01
+        Degree of precision for the slider bar
+    
+    csize: dict
+            Dictionary with chromosome sizes (see AppComponents.utils.CSIZE_DEFAULT for hg19)
+
+    Returns
+    =======
+    List[float]
+        List of length 2 where the 0-index entry is the current/recalculated value of the 0-line, and the 1-index entry is the current value of the 1-line. Used to update the slider bar
+
+    plotly.Figure
+        Copy number profile figure with the comb lines plotted on top
+
+    float
+        Current/recalculated purity value
+
+    float
+        Current/recalculated ploidy value
+        
+    float
+        Current/recalculated 0-line
+
+    float Current/recalculated 1-line
+    """
+    
     if step_size is None:
         step_size = 0.01
     data_df = data.df
@@ -88,6 +145,14 @@ def gen_custom_absolute_component(
     ]
     
 def gen_absolute_custom_solution_layout(step_size=None):
+    """
+    Generates the layout of the custom purity solutions component in the dashboard
+
+    Returns
+    =======
+    dash.html
+        a plotly dash layout with a copy number plot and multiple options to set the purity and ploidy or set the 0 and 1 line
+    """
     if step_size is None:
         step_size = 0.01
     return [
@@ -195,7 +260,14 @@ def gen_absolute_custom_solution_layout(step_size=None):
         ]
 
 def gen_absolute_custom_solution_component(step_size=None):
-    # Adding another component to prebuilt dash board
+    """
+    Generates an AppComponent defining the interactive elements for setting a manual purity/ploidy solution using a copy number profile
+
+    Returns
+    =======
+    AnnoMate.AppComponent
+        AppComponent defining the interactive elements for setting a manual purity/ploidy solution using a copy number profile
+    """
     
     return AppComponent(
         'Manual Purity',

@@ -38,9 +38,14 @@ class ManualPurityReviewer(ReviewerTemplate):
                  annot_col_config_dict: Dict = None,
                  history_df: pd.DataFrame = None) -> GenericData:
         """Generate data for PurityReviewer object
+        Parameters
+        ==========
+        df: pd.DataFrame
+            Pandas dataframe with samples/pairs for rows, and relevant data in columns. 
+            Columns should include an allelic copy ratio segmentation file (ie GATK ACNV pipeline alleliccapseg)
 
         Returns
-        -------
+        =======
         GenericData
             Data object that contains only one dataframe
         """
@@ -63,14 +68,23 @@ class ManualPurityReviewer(ReviewerTemplate):
         Parameters
         ==========
         sample_info_cols: list[str]
-            List of columns in data
+            List of columns in to display from data
+            
         acs_col: str
-            Column name in data with path to seg file from alleliccapseg
+            Column name in data with path to seg file from alleliccapseg or other tsv with allelic copy ratio measurements
+            
         csize: dict
-            Dictionary with chromosome sizes
+            Dictionary with chromosome sizes (see AppComponents.utils.CSIZE_DEFAULT for hg19)
+            
         step_size: float
             Minimum increment allowed for purity (default is 0.01)
+
+        Returns
+        =======
+        ReviewDataApp
+            Review data app object to render the dashboard
         """
+                           
         app = ReviewDataApp()
         
         app.add_component(

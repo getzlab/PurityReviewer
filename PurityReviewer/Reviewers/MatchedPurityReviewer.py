@@ -43,9 +43,14 @@ class MatchedPurityReviewer(ReviewerTemplate):
                  annot_col_config_dict: Dict = None,
                  history_df: pd.DataFrame = None) -> GenericData:
         """Generate data for PurityReviewer object
+        Parameters
+        ==========
+        df: pd.DataFrame
+            Pandas dataframe with samples/pairs for rows, and relevant data in columns. 
+            Columns should include an allelic copy ratio segmentation file (ie GATK ACNV pipeline alleliccapseg)
 
         Returns
-        -------
+        =======
         GenericData
             Data object that contains only one dataframe
         """
@@ -72,20 +77,32 @@ class MatchedPurityReviewer(ReviewerTemplate):
         ==========
         sample_info_cols: list[str]
             List of columns in data
+            
         acs_col: str
-            Column name in data with path to seg file from alleliccapseg
+            Column name in data with path to seg file from alleliccapseg or other tsv with allelic copy ratio measurements
+            
         maf_col: str
             Column name in data with path to maf file (mutation validator validated maf)
+            
         rdata_fn_col: str
             Column name in data with LOCAL path to maf file. Should be predownloaded at set_review_data()
+            
         mut_fig_hover_data: list
             List of column names to add to plotly hover_data in mutation figure
+            
         csize: dict
-            Dictionary with chromosome sizes
+            Dictionary with chromosome sizes (see AppComponents.utils.CSIZE_DEFAULT for hg19)
+            
         custom_parse_absolute_soln: function
             Custom absolute parser function (rdata_path -> data_df)
+            
         step_size: float
             Minimum increment allowed for purity (default is 0.01)
+
+        Returns
+        =======
+        ReviewDataApp
+            Review data app object to render the dashboard
         """
         app = ReviewDataApp()
 

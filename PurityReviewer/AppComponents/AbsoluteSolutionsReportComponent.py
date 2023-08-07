@@ -33,6 +33,60 @@ def gen_absolute_solutions_report_new_data(
     csize=None,
     custom_parse_absolute_soln=None
 ):
+    """
+    Callback function that updates copy number plots when a new sample/pair is selected 
+    
+    Parameters
+    ==========
+    data: GenericData
+        Data object storing the relevant data to review
+        
+    data_id: str
+        Name of the object being reviewed
+        
+    selected_row_array: List
+        List of length 1 containing the currently selected ABSOLUTE solution from the ABSOLUTE solution table
+        
+    rdata_fn_col: str
+        Column in data.df corresponding to the LOCAL file path of the ABSOLUTE rdata
+        
+    acs_col: str
+        Column name in data with path to seg file from alleliccapseg or other tsv with allelic copy ratio measurements.
+        
+    maf_col: str
+        Column name in data with path to maf file (mutation validator validated maf)
+        
+    mut_fig_hover_data: List[str]
+        List of column names to add to plotly hover_data in mutation figure
+
+    csize: dict
+            Dictionary with chromosome sizes (see AppComponents.utils.CSIZE_DEFAULT for hg19)
+            
+    custom_parse_absolute_soln: function
+        Custom absolute parser function (rdata_path -> data_df)
+
+    Returns
+    =======
+    List[Dict]
+        ABSOLUTE solutions table converted into a list of records to be displayed in the dashboard
+
+    plotly.Figure
+        Copy number profile plot with the "comb" plotted corresponding to the currently selected solution
+
+    plotly.Figure
+        Mutation profile plot with the "comb" plotted corresponding to the currently selected solution
+
+    float
+        Purity corresponding to the currently selected solution. For new data, it is set to the first solution
+
+    float
+        Ploidy corresponding to the currently selected solution. For new data, it is set to the first solution
+
+    List[int]
+        An array of length 1 indicating the selected row in the ABSOLUTE solution table. For new data, it is set to the first solution [0]
+    int
+        Index of the current ABSOLUTE solution. For new data, it is set to the first solution 0
+    """
     
     data_df = data.df
     r = data_df.loc[data_id]
@@ -101,6 +155,61 @@ def gen_absolute_solutions_report_internal(
     csize=None,
     custom_parse_absolute_soln=None,
 ):
+    """
+    Callback function that updates copy number plots when the selected ABSOLUTE solution changes
+    
+    Parameters
+    ==========
+    data: GenericData
+        Data object storing the relevant data to review
+        
+    data_id: str
+        Name of the object being reviewed
+        
+    selected_row_array: List
+        List of length 1 containing the currently selected ABSOLUTE solution from the ABSOLUTE solution table
+        
+    rdata_fn_col: str
+        Column in data.df corresponding to the LOCAL file path of the ABSOLUTE rdata
+        
+    acs_col: str
+        Column name in data with path to seg file from alleliccapseg or other tsv with allelic copy ratio measurements.
+        
+    maf_col: str
+        Column name in data with path to maf file (mutation validator validated maf)
+        
+    mut_fig_hover_data: List[str]
+        List of column names to add to plotly hover_data in mutation figure
+
+    csize: dict
+            Dictionary with chromosome sizes (see AppComponents.utils.CSIZE_DEFAULT for hg19)
+            
+    custom_parse_absolute_soln: function
+        Custom absolute parser function (rdata_path -> data_df)
+
+    Returns
+    =======
+    List[Dict]
+        ABSOLUTE solutions table converted into a list of records to be displayed in the dashboard
+
+    plotly.Figure
+        Copy number profile plot with the "comb" plotted corresponding to the currently selected solution
+
+    plotly.Figure
+        Mutation profile plot with the "comb" plotted corresponding to the currently selected solution
+
+    float
+        Purity corresponding to the currently selected solution
+
+    float
+        Ploidy corresponding to the currently selected solution
+
+    List[int]
+        An array of length 1 indicating the selected row in the ABSOLUTE solution table
+    int
+        Index of the current ABSOLUTE solution
+    """
+    
     output_data = gen_absolute_solutions_report_new_data(
         data,
         data_id,
@@ -118,6 +227,14 @@ def gen_absolute_solutions_report_internal(
 
 
 def gen_absolute_solutions_report_layout():
+    """
+    Generates the layout of the ABSOLUTE solutions report component in the dashboard
+
+    Returns
+    =======
+    dash.html
+        a plotly dash layout with a Table with selectable rows for the ABSOLUTE solutions, a copy number profile, and mutation profile
+    """
     return html.Div(
         children=[
             html.H2('Absolute Solutions Table'),
@@ -160,6 +277,14 @@ def gen_absolute_solutions_report_layout():
 
 
 def gen_absolute_solutions_report_component():
+    """
+    Generates an AppComponent defining the interactive elements for viewing ABSOLUTE solutions
+
+    Returns
+    =======
+    AnnoMate.AppComponent
+        AppComponent defining the interactive elements for viewing ABSOLUTE solutions
+    """
     
     return AppComponent(
         'Absolute Solutions',

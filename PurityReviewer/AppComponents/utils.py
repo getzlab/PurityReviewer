@@ -24,6 +24,19 @@ CSIZE_DEFAULT = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276,
 
 
 def get_cum_sum_csize(csize):
+    """
+    Gets the cumulative positions of chromosomes from a dictionary of chromosome lengths
+
+    Parameters
+    ==========
+    csize: Dict
+        Ordered dictionary with chromosome names as the key and the chromosome's length as the value
+
+    Returns
+    =======
+    Dict
+        Dictionary with chromosome names as the key and the chromosome's cumulative end position as the value
+    """
     cum_sum_csize = {}
     cum_sum = 0
     for chrom, size in csize.items():
@@ -37,12 +50,48 @@ def plot_cnp_histogram(
     mu_major_col,
     mu_minor_col,
     length_col,
-    max_mu=2,
+    max_mu=2.0,
     step=0.05,
     fig=None,
     fig_row=None,
     fig_col=None,
 ):
+    """
+    Generates marginal histogram of segments over allelic copy ratio bins
+    
+    Parameters
+    ==========
+    seg_df: pd.DataFrame
+        
+    mu_major_col: str
+        Column in seg_df corresponding to the mean allelic copy ratio of the major allele
+        
+    mu_minor_col: str
+        Column in seg_df corresponding to the mean allelic copy ratio of the minor allele
+        
+    length_col: str
+        Column in seg_df corresponding to the length of the segment
+        
+    max_mu: float, default=2.0
+        maximum mu value to plot
+        
+    step: float, default=0.05
+        bin size for mu values to calculate the histogram
+        
+    fig: plotly.Figure
+        Plotly figure
+        
+    fig_row: int
+        1-indexed row index for the corresponding subplot in fig
+        
+    fig_col: int
+        1-indexed column index for the corresponding subplot in fig
+        
+    Returns
+    =======
+    plotly.Figure
+        Histogram of frequency of genomic material across allelic copy ratio bins.
+    """
     # bin over 
     mu_bins = np.arange(0, max_mu + step, step)
     mu_bins_counts = {b: 0 for b in mu_bins}
@@ -86,6 +135,42 @@ def gen_mut_figure(maf_fn,
                    hover_data=None,
                    csize=None
                   ):
+    """
+    Generates plot with genome on the X axis and VAF on the y axis, and plots mutations from a maf file. 
+
+    Parameters
+    ==========
+    maf_fn: str
+        Column in the data df with each sample's path to its maf file. This maf file should be filtered to only have somatic mutations.
+        
+    chromosome_col: str, default="Chromosome"
+        Column in the maf file corresponding to the chromosome the mutation is in
+        
+    start_position_col: str, default="Start_position"
+        Column in the maf file corresponding to the start position of the mutation
+        
+    hugo_symbol_col: str, default="Hugo_Symbol"
+        Column in the maf file corresponding to the name of the gene that a mutation is in
+        
+    variant_type_col: str, default="Variant_Type"
+        Column in the maf file corresponding to the variant type of the mutation (SNP/INDEL)
+        
+    alt_count_col: str, default="t_alt_count"
+        Column in the maf file corresponding to the alt count of the mutation
+        
+    ref_count_col: str, default="t_ref_count"
+        Column in the maf file corresponding to the ref count of the mutation
+        
+    hover_data: List[str]
+        Additional columns in the maf file to display when hovering over a mutation in the plot
+        
+    csize: Dict
+        Dictionary with chromosome sizes (see AppComponents.utils.CSIZE_DEFAULT for hg19)
+
+    Returns
+    =======
+    plotly.Figure object 
+    """
 
     hover_data = [] if hover_data is None else list(hover_data)
     csize = CSIZE_DEFAULT if csize is None else csize
@@ -140,6 +225,32 @@ def gen_cnp_figure(acs_fn,
                    length_col='length',
                    csize=None
                   ):
+    """
+    Parameters
+    ==========
+    acs_fn: str, Path
+        path to AllelicCapSeg-like CNV file
+        
+    sigmas: bool
+        To plot the sigmas or not
+        
+    mu_major_col: str
+        column in the acs_fn table corresponding to the allelic copy ratio of the major allele (mu.major)
+        
+    mu_minor_col: str
+        column in the acs_fn table corresponding to the allelic copy ratio of the minor allele (mu.minor)
+        
+    length_col: str
+        column in the acs_fn table corresponding to the length of the segment
+        
+    csize: Dict
+        Dictionary with chromosome sizes (see AppComponents.utils.CSIZE_DEFAULT for hg19)
+    
+    Returns
+    =======
+    plotly.Figure
+        Plot of the alellic copy ratios across the genome
+    """
     csize = CSIZE_DEFAULT if csize is None else csize
     cnp_fig = _gen_cnp_figure_cache(acs_fn, mu_major_col, mu_minor_col, length_col, csize)
     if not sigmas:
@@ -155,6 +266,34 @@ def _gen_cnp_figure_cache(acs_fn,
                           mu_minor_col,
                           length_col,
                           csize):
+    """
+    Cached version of the plotting function to generate the copy number profile plot and a marginal allelic copy ratio histogram
+
+    Parameters
+    ==========
+    acs_fn: str, Path
+        path to AllelicCapSeg-like CNV file
+        
+    sigmas: bool
+        To plot the sigmas or not
+        
+    mu_major_col: str
+        column in the acs_fn table corresponding to the allelic copy ratio of the major allele (mu.major)
+        
+    mu_minor_col: str
+        column in the acs_fn table corresponding to the allelic copy ratio of the minor allele (mu.minor)
+        
+    length_col: str
+        column in the acs_fn table corresponding to the length of the segment
+        
+    csize: Dict
+        Dictionary with chromosome sizes (see AppComponents.utils.CSIZE_DEFAULT for hg19)
+        
+    Returns
+    =======
+    plotly.Figure
+        Interactive copy number profile with marginal histogram
+    """
     seg_df = cached_read_csv(acs_fn, sep='\t', encoding='iso-8859-1')
 
     # normalize seg file (important to do before estimating ploidy)
@@ -187,7 +326,21 @@ def _gen_cnp_figure_cache(acs_fn,
     return cnp_fig
 
 
-def parse_absolute_soln(rdata_path: str): # has to be a local path   
+def parse_absolute_soln(rdata_path: str) --> pd.DataFrame: # has to be a local path   
+    """
+    function to convert an rdata file from ABSOLUTE into a pandas dataframe
+    
+    Parameters
+    ==========
+    rdata_path: str, Path
+        LOCAL path to the rdata. This cannot read a gsurl or other remote path
+    
+    Returns
+    =======
+    pd.DataFrame
+        Pandas dataframe of ABSOLUTE purity/ploidy solutions
+    """
+    
     absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
                        'sigma_H', 
                        'theta_Q', 
@@ -230,11 +383,41 @@ def validate_ploidy(x):
 
 
 def download_data(file_to_download_path, full_local_path):
+    """
+    Downloads data from remote url
+
+    Parameters
+    ==========
+    file_to_download_path: str
+        remote url to file to download
+        
+    full_local_path: str
+        local path to download data
+        
+    """
     dalmatian.getblob(file_to_download_path).download_to_filename(full_local_path)
 
 
 def download_rdata(rdata_fn_s, rdata_dir, force_download=False):
+    """
+    Download ABSOLUTE rdata locally
+    
+    Parameters
+    ==========
+    rdata_fn_s: pd.Series
+        Pandas series with sample/pair ids in the index and lists their corresponding rdata remote urls
+        
+    rdata_dir: str, Path
+        Local path to directory to save local rdata files
+        
+    force_download: bool
+        To force redownload even if the file already exists locally (by file name)
 
+    Returns
+    =======
+    pd.Series
+        Pandas series with sample/pair ids in the index and lists their corresponding rdata local urls
+    """
     if not os.path.isdir(rdata_dir):
         os.mkdir(rdata_dir)
 
@@ -249,3 +432,4 @@ def download_rdata(rdata_fn_s, rdata_dir, force_download=False):
         local_rdata_dict[pair_id] = local_absolute_rdata_fn
 
     return pd.Series(local_rdata_dict)
+    
