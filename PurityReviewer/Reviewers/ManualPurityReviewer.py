@@ -30,6 +30,9 @@ from typing import List, Dict
 from dash.dependencies import State
 
 class ManualPurityReviewer(ReviewerTemplate):
+    """
+    Dashboard to iterate through a sample/pair and manually select and annotate the best fit purity and ploidy solution. Either set the 0 and 1 line manually, or input a purity and ploidy.
+    """
     def gen_data(self,
                  description: str,
                  df: pd.DataFrame,

@@ -35,6 +35,11 @@ from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, p
 
 
 class MatchedPurityReviewer(ReviewerTemplate):
+    """
+    Dashboard to iterate through samples/pairs to review and select the best solution from ABSOLUTE (Carter, 2012)
+
+    Carter, S., Cibulskis, K., Helman, E. et al. Absolute quantification of somatic DNA alterations in human cancer. Nat Biotechnol 30, 413–421 (2012). https://doi.org/10.1038/nbt.2203
+    """
     def gen_data(self,
                  description: str,
                  df: pd.DataFrame,

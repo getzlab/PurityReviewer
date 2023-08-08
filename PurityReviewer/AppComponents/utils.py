@@ -326,7 +326,7 @@ def _gen_cnp_figure_cache(acs_fn,
     return cnp_fig
 
 
-def parse_absolute_soln(rdata_path: str) --> pd.DataFrame: # has to be a local path   
+def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local path   
     """
     function to convert an rdata file from ABSOLUTE into a pandas dataframe
     
