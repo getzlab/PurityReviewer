@@ -105,11 +105,10 @@ The steps preceding this review are:
 
 #### Investigate/validate anomalies and discrepancies
 1. Check QC, upstream tasks like AllelicCapSeg plots, etc.
-2. (rare) Large subclonal homozygous deletion - almost certainly on sibling clones 
-    a. Can’t survive without at least 1 copy
+2. (rare) Large subclonal homozygous deletion - almost certainly on sibling clones (can’t survive without at least 1 copy)
 
 ### Using the PurityReviewer: How to use the reviewer, what to look for, tips and tricks 
-Once you have all the information you need to review sample purities, you can run the PurityReviewer dashboard following the instructions in the README. This dashboard is where you can then render the data for each sample, select a purity solution, and make any additional annotations or notes. 
+Once you have all the information you need to review sample purities, you can run the PurityReviewer dashboard following the instructions in the above Install and Basic Usage sections. This dashboard is where you can then render the data for each sample, select a purity solution, and make any additional annotations or notes. 
 
 #### Picking ABSOLUTE solutions
 Ideally, one of the ABSOLUTE solutions will be good and that will be what you pick for the purity. Since this is the goal, the first step of the purity review process is to go through each ABSOLUTE solution one by one, look at the corresponding copy number profiles and mutations, and determine if the solution looks good or not. In general, you want to select the solution where the “comb plot” - or the integer CN lines - match up with the most prominent segment cluster peaks and generally select the simplest solution that explains the data. If you’re not sure about a certain solution, you can look further at the linked AllelicCapSeg plots to see if the total copy ratios make sense with the allelic copy number in the main copy number plot on the dashboard. If you find a solution that looks good, you can simply click the “Pick current solution” button in the annotations panel to fill in all of the information for that solution, submit your annotation, and move on to the next sample. 
