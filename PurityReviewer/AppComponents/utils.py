@@ -14,6 +14,7 @@ from cnv_suite import calc_avg_cn
 from natsort import natsorted
 
 from AnnoMate.AppComponents.utils import freezeargs, cached_read_csv
+from scipy.stats import beta
 
 
 CSIZE_DEFAULT = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
@@ -133,7 +134,7 @@ def gen_mut_figure(maf_fn,
                    alt_count_col='t_alt_count',
                    ref_count_col='t_ref_count',
                    hover_data=None,
-                   csize=None
+                   csize=None,
                   ):
     """
     Generates plot with genome on the X axis and VAF on the y axis, and plots mutations from a maf file. 
@@ -187,38 +188,64 @@ def gen_mut_figure(maf_fn,
     
     maf_df['new_position'] = maf_df.apply(lambda r: cum_sum_csize[r[chromosome_col]] + r[start_position_col], axis=1)
     maf_df['tumor_f'] = maf_df[alt_count_col] / (maf_df[alt_count_col] + maf_df[ref_count_col])
+
+
+    def plot_mut_genome():
+        fig = px.scatter(maf_df, x='new_position', y='tumor_f', marginal_y='histogram', hover_data=hover_data)
     
-    fig = px.scatter(maf_df, x='new_position', y='tumor_f', marginal_y='histogram', hover_data=hover_data)
+        fig.update_layout(plot_bgcolor='rgba(0,0,0,0)')
+    
+        fig.update_xaxes(
+            showgrid=False,
+            zeroline=False,
+            tickvals=np.asarray(list(chrom_start.values())[:-1]) + np.asarray(list(csize.values())) / 2,
+            ticktext=chr_order,
+            tickfont_size=10,
+            tickangle=0,
+            range=[0, chrom_start['Z']]
+        )
+        fig.update_xaxes(title_text="Chromosome")
+                          
+                          
+        fig.update_yaxes(range=[0, 1])
+    
+        return fig
 
-    fig.update_layout(plot_bgcolor='rgba(0,0,0,0)')
-
-    fig.update_xaxes(
-        showgrid=False,
-        zeroline=False,
-        tickvals=np.asarray(list(chrom_start.values())[:-1]) + np.asarray(list(csize.values())) / 2,
-        ticktext=chr_order,
-        tickfont_size=10,
-        tickangle=0,
-        range=[0, chrom_start['Z']]
-    )
-    fig.update_xaxes(title_text="Chromosome")
+    def plot_mut_betas(df, step = 0.01):
                       
-                      
-    fig.update_yaxes(range=[0, 1])
+        x = np.round(np.arange(0, 1 + step, step), 2)
+        df.loc[:, x] = df.apply(lambda r: pd.Series(index=x, data=beta.pdf(x, r['t_alt_count'] + 1, r['t_ref_count'] + 1)), axis=1)
 
+        new_df = df.set_index(
+            [hugo_symbol_col, start_position_col, variant_type_col]
+        )[list(x)].stack().reset_index().rename(columns={'level_3': 'vaf', 0: 'beta_pdf'})
+
+        fig = px.line(new_df, x='beta_pdf', y='vaf', line_group='Hugo_Symbol', color=variant_type_col)
+        fig.update_traces(opacity=.4)
+        return fig
+
+
+
+    genome_fig = plot_mut_genome()
+    beta_fig = plot_mut_betas(maf_df)
+    
     final_fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_widths=[0.77, 0.25])
-    for t in fig.data:
-        final_fig.add_trace(t, row=1, col=1)
+    for t in genome_fig.data:
+        # final_fig.add_trace(t, row=1, col=1)
+        final_fig.append_trace(t, row=1, col=1)
+
+    for t in beta_fig.data:
+        final_fig.append_trace(t, row=1, col=2)
+
+    final_fig.layout.yaxis.update(title_text='Variant Allele Fraction')
+    final_fig.layout.xaxis2.update(title_text='Beta PDF')
 
     add_background(final_fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
-    final_fig.update_xaxes(fig.layout.xaxis, row=1, col=1)
-    final_fig.update_yaxes(fig.layout.yaxis, row=1, col=1)
+    final_fig.update_xaxes(genome_fig.layout.xaxis, row=1, col=1)
     final_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
 
-    # combined_fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_widths=[0.77, 0.25])
     
     return final_fig
-
 
 def gen_cnp_figure(acs_fn,
                    sigmas=True, 
