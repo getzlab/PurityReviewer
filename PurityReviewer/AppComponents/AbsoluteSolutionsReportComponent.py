@@ -237,7 +237,6 @@ def gen_absolute_solutions_report_layout():
     """
     return html.Div(
         children=[
-            html.H2('Absolute Solutions Table'),
             dash_table.DataTable(
                id='absolute-rdata-select-table',
                columns=[

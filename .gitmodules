@@ -1,0 +1,3 @@
+[submodule "example_notebooks/SimulatedTumorData"]
+	path = example_notebooks/SimulatedTumorData
+	url = git@github.com:getzlab/SimulatedTumorData.git
