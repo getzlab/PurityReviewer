@@ -76,53 +76,83 @@ It is also possible to add your own annotations in addition to the default ones.
 
 # Review With PurityReviewer
 
-## Why is this type of review important 
-Nearly all bulk tumor samples, tissue or blood, will contain some amount of normal cells. Subsequently, DNA or RNA collected from these tissues will be a mixture of both tumor and normal DNA/RNA sequences. Estimating the percentage of DNA that actually comes from the tumor (purity) is critical for downstream analysis and interpretation. For example, a mutation with a low (<0.2) variant allele fraction (VAF, percent of reads supporting the alternate allele) could really be in all the tumor cells if the sample also has low purity. Similarly, quantifying a purity will help determine whether copy number events (amplifications and deletions) are clonal (in all tumor cells) or subclonal (in only a subset). 
+## Why call purities?
+The presence of normal cells in tumor samples dilutes the signal for tumor specific events such as mutations and copy number events. Estimating the purity (the percentage of cells in a tumor sample that are tumors) and ploidy (the average number of copies of the genome across tumor cells) allows us to adjust the raw sequencing data to infer relevant genomic characteristics of the tumor. These characteristics include (i) the absolute number of copies of each chromosome and (ii) clonal and subclonal architecture<sup>1</sup>. 
 
-One of the tools in the CGA pipeline, ABSOLUTE (Carter et. al), was created to infer purities, along with other metrics, of bulk tumor samples that best explains the input data. This input data consists of somatic mutations (SNVs) and their VAFs, and segmentations of the genome using changes in total copy ratio (TCR) and allelic copy ratio (ACR) that signify copy number events. Since these ratios are relative, there may be multiple purity solutions that could produce the observed SNVs and Copy number events. Thus, ABSOLUTE returns multiple possible purity solutions, and manual review is required to select the most appropriate solution based on prior biological and/or clinical knowledge about the tumor and sequencing artifacts. The PurityReviewer was created to automate this manual review process, allowing a reviewer to quickly render relevant complementary data and intermediate figures to help select the most appropriate purity solution. 
+## Using ABSOLUTE<sup>1</sup> to call purities
+ABSOLUTE<sup>1</sup> identifies likely purity and ploidy solutions for a tumor sample given information from bulk DNA sequencing data, including the allelic copy ratio (ACR) and variant allele fractions (VAF, proportion of reads supporting the mutation) for mutation calls. 
 
-## How is this review conducted 
+## Why manual review?
+Different purity and subclonal architecture in a tumor sample can lead to similar observed mutation VAFs and copy number. For example, whole genome doubling events still correspond to “balanced” ACR, and look the same as a normal diploid genome. This ambiguity means there may be multiple purity-ploidy solutions with similar likelihood. ABSOLUTE may identify multiple likely purity-ploidy solutions, so an analyst has to decide among the solutions based on heuristics and prior biological/clinical knowledge about the tumor and sequencing artifacts. 
 
-### Pre-reviewer use: Pipelines and tools run before purity can be reviewed 
-The steps preceding this review are: 
-1. QC sequencing results: looking over initial BAM QC metrics to filter out any samples with low QC scores from downstream analyses
-2. Check for sample swaps: fingerprinting samples within and across patients to identify potential mismatches during sequencing.
-3. Run the CGA pipeline: the pipeline will automatically run ABSOLUTE and generate possible purity solutions to be reviewed, in addition to mutation calling and filtering. The output will be an RData table with the solutions and corresponding annotations. 
+The *PurityReviewer* was created to automate this manual review process, allowing a reviewer to quickly render relevant complementary data and intermediate figures to help select the most appropriate purity solution. 
 
-### General best practices reviewing ABSOLUTE solutions 
+## Running ABSOLUTE
+See [ABSOLUTE](https://github.com/getzlab/ABSOLUTE) for more details about input data. In brief:
+1. Run a mutation calling tool or pipeline (e.g. Mutect1<sup>2</sup>). Perform additional artifact filtering so that the final mutation table contains only somatic mutations.
+2. Run a copy number pipeline that produces a segmentation of the genome and calculates an ACR for each homolog at each segment (GATK CNV<sup>3</sup> or AllelicCapSeg<sup>4</sup>).
+3. Run ABSOLUTE.
+The [CGA characterization pipeline](https://github.com/broadinstitute/CGA_Production_Analysis_Pipeline) automatically calls mutations, produces the copy number profile, and runs ABSOLUTE. The output will be an RData table with the purity-ploidy solutions and corresponding annotations. 
+
+## Reviewing purities
+
+### General best practices when reviewing ABSOLUTE solutions 
 
 #### Pick simplest solution
-1. Prefer solutions with integer CN that line up with comb peaks
-2. Largest peaks should be at “easy” CNs (e.g. 1, 2, 4)
-3. Bottom peak should generally be close to zero
+- Prefer solutions with integer CN that line up with "comb" peaks
+- Largest peaks should be at reasonable CNs (e.g. 1 (haploid), 2 (diploid), 4 (tetraploid))
+- Bottom peak should generally be close to zero (corresponding to clonal deletions)
 
-#### Multiplicity peack should line up with CN=1 (possibly small peak at CN=2)
-1. This plot is biased due to clonal/subclonal boundary - better to plot yourself if unclear
-2. Similarly, ɑ/2 should divide highest-AF peak
+#### Evidence from mutation multiplicities
+- The multiplicity peak should line up with CN=1 
+- There may possibly be a small peak at CN=2
+- Purity ÷ 2 should align with the highest-VAF peak in balanced regions
 
-#### Whole Genome Doubling/Trippling (WGD/WGT, etc.) should have support from clonal mutations (at least some at both CN = 1, 2 depending on timing of doubling)
-1. Use serial samples if you have them to resolve discrepancies (just remember varying possibilities for subclones)
+#### Whole Genome Duplication (WGD) evidence
+- WGD call should be supported by presence of clonal mutations (at least some at both CN = 1, 2 depending on timing of doubling)
+- Use serial samples if you have them to resolve discrepancies (just remember varying possibilities for subclones)
 
 #### Investigate/validate anomalies and discrepancies
-1. Check QC, upstream tasks like AllelicCapSeg plots, etc.
-2. (rare) Large subclonal homozygous deletion - almost certainly on sibling clones (can’t survive without at least 1 copy)
+- Check general QC, upstream tasks like AllelicCapSeg plots, etc.
+- Look for orthogonal evidence in single cell data or serial samples
+- (rare) A large subclonal homozygous deletion is almost certainly on sibling clones since cells cannot survive without at least 1 copy of large chromosomal regions
+    - If sibling clones are unlikely (due to CCFs), investigate cause of artifact
+- Both homologs subclonally deleted could be in separate clones
 
-### Using the PurityReviewer: How to use the reviewer, what to look for, tips and tricks 
-Once you have all the information you need to review sample purities, you can run the PurityReviewer dashboard following the instructions in the above Install and Basic Usage sections. This dashboard is where you can then render the data for each sample, select a purity solution, and make any additional annotations or notes. 
+Using the *MatchedPurityReviewer*, you can automatically render each purity-ploidy solution at a time by clicking through an interactive table. The Reviewer includes an “autofill” button that you can click on to fill in your annotations directly once you have decided on a solution.
 
-#### Picking ABSOLUTE solutions
-Ideally, one of the ABSOLUTE solutions will be good and that will be what you pick for the purity. Since this is the goal, the first step of the purity review process is to go through each ABSOLUTE solution one by one, look at the corresponding copy number profiles and mutations, and determine if the solution looks good or not. In general, you want to select the solution where the “comb plot” - or the integer CN lines - match up with the most prominent segment cluster peaks and generally select the simplest solution that explains the data. If you’re not sure about a certain solution, you can look further at the linked AllelicCapSeg plots to see if the total copy ratios make sense with the allelic copy number in the main copy number plot on the dashboard. If you find a solution that looks good, you can simply click the “Pick current solution” button in the annotations panel to fill in all of the information for that solution, submit your annotation, and move on to the next sample. 
+### Picking solutions manually 
+If you have gone through all the ABSOLUTE solutions and have not found a purity that looks good for a certain sample, you can estimate your own purity-ploidy by deciding where the 0-line and 1-line of the comb plot should lie in the allelic copy ratio scale. Ideally, clonal deletion or LOH events correspond to the 0-line, and biallelic non-amplified, balanced segments correspond to the 1-line. 
 
-#### Picking solutions manually 
-If after you have gone through all the ABSOLUTE solutions and have not found a purity that looks good, you can estimate your own purity in the “manual purity” section of PurityReviewer. To do so, you manually set the 0 line and 1 line to correspond to where you expect a clonal deletion and normal segments should lie in the allelic copy ratio scale, respectively. Once you estimate the purity this way, click the “Use manual solution” button in the annotations panel to fill in the information from your manual solution and submit your annotation. 
+To estimate the purity ($\alpha$):
 
-#### No solution
-It is also possible that there is no clear/good solution for a given sample, especially if the sample has very low purity. If this is the case, you would likely want to discard the sample. You could add your own annotations (e.g.: a checkbox with the option “no solution” or “discard”), or simply write ‘discard’ in the “notes” section of the annotations panel. If this is the case, all other annotation fields can be left blank. 
+$$\delta = l_1 - l_0$$
+$$\alpha = 1 - \frac{l_0}{l1}$$
 
-## Next steps after review: Now that review has been conducted, what is done with the information found
-Once you have gone through all of your samples, you can find all of your annotations in the annotations_df. This pandas DataFrame can then be merged with all of the original data in the Terra pairs table and uploaded back to the pairs table. This can either be done manually or with the use of dalmatian, a python package that allows for interaction with Terra directly through pandas DataFrames. 
+To estimate average ploidy of the **whole sample** ($\tau$):
 
-Now that the original data is annotated with finding from your purity review, downstream processes that require purity and ploidy, like pre-phylogic and PhylogicNDT, can be run, filtering out the samples where low or unclear purity was found. This filtering can easily be done by looking for the ‘discard’ or ‘remove’ annotation. 
+$$\tau = \frac{2 (1 - l_0)(1 - \alpha)}{\alpha l_0}$$
+
+The *PurityReviewer* allows you to “draw” the 0-line and 1-line on top of an ACR plot, and automatically calculates the corresponding purity and ploidy. Once you have set the lines, the reviewer includes an autofill button to fill the annotation table with your custom solution.
+
+
+### No solution
+It is also possible that there is no clear/good solution for a given sample, especially if the sample’s ACR profile is too noisy (highly segmented) or the sample has very low purity. If this is the case, you should investigate the upstream data and tools for confirmation of the lack of signal; perhaps there was a bug in the pipeline that caused this issue. However, in the more likely event that the sample’s read count or purity is too low, you can decide to discard the sample.
+
+The *PurityReviewer* includes a notes section to annotate this decision. Alternatively, you can add a custom annotation to label samples for specific action (e.g.: a checkbox with the option “no solution” or “discard”) and leave the remaining fields blank.
+
+## PurityReviewer Annotations
+The following is a list of the default annotations included in the *PurityReviewer*. Note that this reviewer has autofill buttons that will automatically fill in all of the following annotations (aside from notes) based on the solutions you have chosen in the reviewer as detailed in the previous section. 
+- Purity: The percentage of tumor cells in a given sample 
+- Ploidy: The average amount of DNA in the tumor cells (2 = diploid, 4 = tetraploid, etc.)
+- Method: How you determined your solution - ABSOLUTE or Manually 
+- ABSOLUTE solution index: The ABSOLUTE solution you chose (if you chose one)
+- Notes: Any information to note about the sample
+
+It is also possible to add your own annotations in addition to the default ones. The following is a list of additional annotations that could be useful to add depending on the specific project you are working on or the type of cancer you are studying:
+- Whole genome doubling (yes/no)
+- Quality (low/high)
+- ChrX loss or gain
 
 # Custom and advanced usage
 
@@ -133,4 +163,7 @@ For customizing annotations, adding new components, and other features, see [Int
 For more detailed tutorials, see [AnnoMate](https://github.com/getzlab/AnnoMate)
 
 # References
-ABSOLUTE: Carter, S. L. et al. Absolute quantification of somatic DNA alterations in human cancer. Nat. Biotechnol. 30, 413–21 (2012). doi: 10.1038/nbt.2203.
+1. Carter, S. L. et al. Absolute quantification of somatic DNA alterations in human cancer. Nat. Biotechnol. 30, 413–21 (2012). doi: 10.1038/nbt.2203.
+2. Cibulskis, K., Lawrence, M. S., Carter, S. L., Sivachenko, A., Jaffe, D., Sougnez, C., Gabriel, S., Meyerson, M., Lander, E. S., & Getz, G. (2013). Sensitive detection of somatic point mutations in impure and heterogeneous cancer samples. Nature biotechnology, 31(3), 213–219. https://doi.org/10.1038/nbt.2514
+3. Van der Auwera GA & O'Connor BD. (2020). Genomics in the Cloud: Using Docker, GATK, and WDL in Terra (1st Edition). O'Reilly Media
+4. Carter, S., Meyerson, M. & Getz, G. Accurate estimation of homologue-specific DNA concentration-ratios in cancer samples allows long-range haplotyping. Nat Prec (2011). https://doi.org/10.1038/npre.2011.6494.1
