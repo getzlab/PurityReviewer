@@ -92,6 +92,7 @@ See [ABSOLUTE](https://github.com/getzlab/ABSOLUTE) for more details about input
 1. Run a mutation calling tool or pipeline (e.g. Mutect1<sup>2</sup>). Perform additional artifact filtering so that the final mutation table contains only somatic mutations.
 2. Run a copy number pipeline that produces a segmentation of the genome and calculates an ACR for each homolog at each segment (GATK CNV<sup>3</sup> or AllelicCapSeg<sup>4</sup>).
 3. Run ABSOLUTE.
+
 The [CGA characterization pipeline](https://github.com/broadinstitute/CGA_Production_Analysis_Pipeline) automatically calls mutations, produces the copy number profile, and runs ABSOLUTE. The output will be an RData table with the purity-ploidy solutions and corresponding annotations. 
 
 ## Reviewing purities
@@ -127,7 +128,8 @@ If you have gone through all the ABSOLUTE solutions and have not found a purity 
 To estimate the purity ($\alpha$):
 
 $$\delta = l_1 - l_0$$
-$$\alpha = 1 - \frac{l_0}{l1}$$
+
+$$\alpha = 1 - \frac{l_0}{l_1}$$
 
 To estimate average ploidy of the **whole sample** ($\tau$):
 
