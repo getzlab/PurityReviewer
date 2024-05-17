@@ -123,9 +123,9 @@ def plot_cnp_histogram(
     return fig
 
 
-@freezeargs
-@lru_cache(maxsize=32)
-def gen_mut_figure(maf_fn,
+#@freezeargs
+#@lru_cache(maxsize=32)
+def gen_mut_figure(maf_df,
                    chromosome_col='Chromosome',
                    start_position_col='Start_position',
                    hugo_symbol_col='Hugo_Symbol',
@@ -180,15 +180,16 @@ def gen_mut_figure(maf_fn,
     chrom_start = {chrom: start for (chrom, start) in
                    zip(np.append(chr_order, 'Z'), np.cumsum([0] + [csize[a] for a in chr_order]))}
 
-    maf_df = cached_read_csv(maf_fn, sep='\t', encoding='iso-8859-1')
+    #maf_df = cached_read_csv(maf_fn, sep='\t', encoding='iso-8859-1')
     if maf_df[chromosome_col].dtype == 'object':
         maf_df[chromosome_col].replace({'X': 23, 'Y': 24}, inplace=True)
     maf_df[chromosome_col] = maf_df[chromosome_col].astype(str)
     
     maf_df['new_position'] = maf_df.apply(lambda r: cum_sum_csize[r[chromosome_col]] + r[start_position_col], axis=1)
-    maf_df['tumor_f'] = maf_df[alt_count_col] / (maf_df[alt_count_col] + maf_df[ref_count_col])
+
+    #maf_df['tumor_f'] = maf_df[alt_count_col] / (maf_df[alt_count_col] + maf_df[ref_count_col])
     
-    fig = px.scatter(maf_df, x='new_position', y='tumor_f', marginal_y='histogram', hover_data=hover_data)
+    fig = px.scatter(maf_df, x='new_position', y='multiplicity', marginal_y='histogram', hover_data=hover_data)
 
     fig.update_layout(plot_bgcolor='rgba(0,0,0,0)')
 
@@ -204,7 +205,7 @@ def gen_mut_figure(maf_fn,
     fig.update_xaxes(title_text="Chromosome")
                       
                       
-    fig.update_yaxes(range=[0, 1])
+    fig.update_yaxes(range=[0, 2.5])
 
     final_fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_widths=[0.77, 0.25])
     for t in fig.data:
@@ -371,8 +372,22 @@ def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local pa
     mod_tab_df['Kar_likelihood'] = mode_tab[:, 17]
     mod_tab_df['SSNVs_likelihood'] = mode_tab[:, 20]
 
-    return mod_tab_df
+    # Maf file
+    maf_file = rdata_tables.rx2('mut.cn.dat')
+    mut_annot_list = mode_res.rx2('modeled.muts')
 
+    return mod_tab_df,maf_file,mut_annot_list
+
+def calculate_multiplicity(maf,alpha):
+    # Local copy number
+    q = maf['q_hat']
+    # Allele fraction
+    af = maf['alt']/(maf['alt']+maf['ref'])
+
+    # af = (alpha * mult) / (alpha * q + (1-alpha)*2)
+    mult = af * (alpha*q + (1-alpha)*2) / alpha
+
+    return(mult)
 
 def validate_purity(x):
     return (x >=0) and (x <= 1)

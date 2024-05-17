@@ -10,7 +10,7 @@ from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity
 
 
 absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
@@ -93,18 +93,18 @@ def gen_absolute_solutions_report_new_data(
     
     parse_absolute_soln_func = custom_parse_absolute_soln if custom_parse_absolute_soln is not None else parse_absolute_soln
     try:
-        absolute_rdata_df = parse_absolute_soln_func(r[rdata_fn_col])
+        absolute_rdata_df,maf,maf_annot_list = parse_absolute_soln_func(r[rdata_fn_col])
     except Exception as e:
         print(e)
-        absolute_rdata_df = pd.DataFrame()
+        absolute_rdata_df,maf,maf_annot_list = pd.DataFrame()
 
     absolute_rdata_df = absolute_rdata_df.round(2)
     
     cnp_fig = gen_cnp_figure(r[acs_col], csize=CSIZE_DEFAULT)
-    mut_fig = gen_mut_figure(r[maf_col], hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
+
+
 
     # add 1 and 0 lines
-    mut_fig_with_lines = go.Figure(mut_fig)
     cnp_fig_with_lines = go.Figure(cnp_fig)
     
     purity = 0
@@ -112,6 +112,9 @@ def gen_absolute_solutions_report_new_data(
     
     if absolute_rdata_df.shape[0] > 0:
         solution_data = absolute_rdata_df.iloc[selected_row_array[0]]
+        maf_soln = pd.concat([maf, maf_annot_list[selected_row_array[0]]],axis=1)
+        maf_soln = maf_soln[maf_soln['Variant_Type']=='SNP']
+
         i = 0
         line_height = solution_data['0_line']
         while line_height < 2:
@@ -123,18 +126,24 @@ def gen_absolute_solutions_report_new_data(
                                         )
             i += 1
 
-        half_1_line = solution_data['alpha'] / 2.0
-        mut_fig_with_lines.add_hline(y=half_1_line, 
-                                    line_dash="dash", 
-                                    line_color='black',
-                                    line_width=1)
 
-        mut_fig_with_lines.update_yaxes(range=[0, half_1_line * 2])
+
+#
+        #mut_fig_with_lines.update_yaxes(range=[0, half_1_line * 2])
         
         purity = solution_data['alpha']
         ploidy = solution_data['tau_hat']
 
-    return [absolute_rdata_df.to_dict('records'), 
+        maf_soln['multiplicity'] = calculate_multiplicity(maf_soln,purity)
+        mut_fig = gen_mut_figure(maf_soln, hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
+        mut_fig_with_lines = go.Figure(mut_fig)
+        for yval in [1,2]:
+            mut_fig_with_lines.add_hline(y=yval,
+                                    line_dash="dash",
+                                    line_color='black',
+                                    line_width=1)
+
+    return [absolute_rdata_df.to_dict('records'),
             cnp_fig_with_lines, 
             mut_fig_with_lines,
             purity,
