@@ -22,7 +22,7 @@ setuptools.setup(
     ],
     package_dir={"": "."},
     packages=setuptools.find_packages(where="."),
-    python_requires=">=3.9",
+    python_requires=">=3.8",
     install_requires = [
                         'ipykernel==6.22.0',
                         'pandas==1.5.2',
