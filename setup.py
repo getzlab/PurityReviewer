@@ -28,7 +28,7 @@ setuptools.setup(
                         'pandas==1.5.2',
                         'setuptools',
                         'natsort',
-                        'AnnoMate==0.0.1',
+                        'AnnoMate>=0.0.2',
                         'rpy2==3.4.2',
                         'firecloud-dalmatian',
                         'cnv_suite'
