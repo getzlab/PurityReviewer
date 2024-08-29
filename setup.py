@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="PurityReviewer",
-    version="0.0.3",
+    version="1.0.0",
     author="Claudia Chu",
     author_email="cchu@broadinstitute.org",
     description="Suite of purity review dashboards",
@@ -22,13 +22,17 @@ setuptools.setup(
     ],
     package_dir={"": "."},
     packages=setuptools.find_packages(where="."),
-    python_requires=">=3.9",
+    python_requires=">=3.8",
     install_requires = [
                         'ipykernel==6.22.0',
                         'pandas==1.5.2',
                         'setuptools',
                         'natsort',
+<<<<<<< HEAD
                         'AnnoMate==0.0.1',
+=======
+                        'AnnoMate>=1.0.0',
+>>>>>>> origin
                         'rpy2==3.4.2',
                         'firecloud-dalmatian',
                         'cnv_suite'

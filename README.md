@@ -14,6 +14,15 @@ See [Set up Conda Environment](https://github.com/getzlab/JupyterReviewer/blob/m
     
 ## Install PurityReviewer
 
+**Install R**
+
+On ubuntu:
+```
+sudo apt update
+sudo apt -y upgrade
+sudo apt -y install r-base
+```
+
 Clone 
 ```
 git clone git@github.com:getzlab/PurityReviewer.git 
