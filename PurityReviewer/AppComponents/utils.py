@@ -14,7 +14,6 @@ from cnv_suite import calc_avg_cn
 from natsort import natsorted
 
 from AnnoMate.AppComponents.utils import freezeargs, cached_read_csv
-from scipy.stats import beta
 
 
 CSIZE_DEFAULT = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
@@ -124,9 +123,9 @@ def plot_cnp_histogram(
     return fig
 
 
-@freezeargs
-@lru_cache(maxsize=32)
-def gen_mut_figure(maf_fn,
+#@freezeargs
+#@lru_cache(maxsize=32)
+def gen_mut_figure(maf_df,
                    chromosome_col='Chromosome',
                    start_position_col='Start_position',
                    hugo_symbol_col='Hugo_Symbol',
@@ -134,7 +133,7 @@ def gen_mut_figure(maf_fn,
                    alt_count_col='t_alt_count',
                    ref_count_col='t_ref_count',
                    hover_data=None,
-                   csize=None,
+                   csize=None
                   ):
     """
     Generates plot with genome on the X axis and VAF on the y axis, and plots mutations from a maf file. 
@@ -181,71 +180,44 @@ def gen_mut_figure(maf_fn,
     chrom_start = {chrom: start for (chrom, start) in
                    zip(np.append(chr_order, 'Z'), np.cumsum([0] + [csize[a] for a in chr_order]))}
 
-    maf_df = cached_read_csv(maf_fn, sep='\t', encoding='iso-8859-1')
+    #maf_df = cached_read_csv(maf_fn, sep='\t', encoding='iso-8859-1')
     if maf_df[chromosome_col].dtype == 'object':
         maf_df[chromosome_col].replace({'X': 23, 'Y': 24}, inplace=True)
     maf_df[chromosome_col] = maf_df[chromosome_col].astype(str)
     
     maf_df['new_position'] = maf_df.apply(lambda r: cum_sum_csize[r[chromosome_col]] + r[start_position_col], axis=1)
-    maf_df['tumor_f'] = maf_df[alt_count_col] / (maf_df[alt_count_col] + maf_df[ref_count_col])
 
+    #maf_df['tumor_f'] = maf_df[alt_count_col] / (maf_df[alt_count_col] + maf_df[ref_count_col])
+    
+    fig = px.scatter(maf_df, x='new_position', y='multiplicity', marginal_y='histogram', hover_data=hover_data)
 
-    def plot_mut_genome():
-        fig = px.scatter(maf_df, x='new_position', y='tumor_f', marginal_y='histogram', hover_data=hover_data)
-    
-        fig.update_layout(plot_bgcolor='rgba(0,0,0,0)')
-    
-        fig.update_xaxes(
-            showgrid=False,
-            zeroline=False,
-            tickvals=np.asarray(list(chrom_start.values())[:-1]) + np.asarray(list(csize.values())) / 2,
-            ticktext=chr_order,
-            tickfont_size=10,
-            tickangle=0,
-            range=[0, chrom_start['Z']]
-        )
-        fig.update_xaxes(title_text="Chromosome")
-                          
-                          
-        fig.update_yaxes(range=[0, 1])
-    
-        return fig
+    fig.update_layout(plot_bgcolor='rgba(0,0,0,0)')
 
-    def plot_mut_betas(df, step = 0.01):
+    fig.update_xaxes(
+        showgrid=False,
+        zeroline=False,
+        tickvals=np.asarray(list(chrom_start.values())[:-1]) + np.asarray(list(csize.values())) / 2,
+        ticktext=chr_order,
+        tickfont_size=10,
+        tickangle=0,
+        range=[0, chrom_start['Z']]
+    )
+    fig.update_xaxes(title_text="Chromosome")
                       
-        x = np.round(np.arange(0, 1 + step, step), 2)
-        df.loc[:, x] = df.apply(lambda r: pd.Series(index=x, data=beta.pdf(x, r['t_alt_count'] + 1, r['t_ref_count'] + 1)), axis=1)
+                      
+    fig.update_yaxes(range=[0, 2.5])
 
-        new_df = df.set_index(
-            [hugo_symbol_col, start_position_col, variant_type_col]
-        )[list(x)].stack().reset_index().rename(columns={'level_3': 'vaf', 0: 'beta_pdf'})
-
-        fig = px.line(new_df, x='beta_pdf', y='vaf', line_group='Hugo_Symbol', color=variant_type_col)
-        fig.update_traces(opacity=.4)
-        return fig
-
-
-
-    genome_fig = plot_mut_genome()
-    beta_fig = plot_mut_betas(maf_df)
-    
     final_fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_widths=[0.77, 0.25])
-    for t in genome_fig.data:
-        # final_fig.add_trace(t, row=1, col=1)
-        final_fig.append_trace(t, row=1, col=1)
-
-    for t in beta_fig.data:
-        final_fig.append_trace(t, row=1, col=2)
-
-    final_fig.layout.yaxis.update(title_text='Variant Allele Fraction')
-    final_fig.layout.xaxis2.update(title_text='Beta PDF')
+    for t in fig.data:
+        final_fig.add_trace(t, row=1, col=1)
 
     add_background(final_fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
-    final_fig.update_xaxes(genome_fig.layout.xaxis, row=1, col=1)
+    final_fig.update_xaxes(fig.layout.xaxis, row=1, col=1)
+    final_fig.update_yaxes(fig.layout.yaxis, row=1, col=1)
     final_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
-
     
     return final_fig
+
 
 def gen_cnp_figure(acs_fn,
                    sigmas=True, 
@@ -326,7 +298,7 @@ def _gen_cnp_figure_cache(acs_fn,
     seg_df = cached_read_csv(acs_fn, sep='\t', encoding='iso-8859-1')
 
     # normalize seg file (important to do before estimating ploidy)
-    # seg_df[['tau','sigma.tau','mu.minor','sigma.minor','mu.major','sigma.major']] = seg_df[['tau','sigma.tau','mu.minor','sigma.minor','mu.major','sigma.major']] / calc_avg_cn(seg_df)
+    seg_df[['tau','sigma.tau','mu.minor','sigma.minor','mu.major','sigma.major']] = seg_df[['tau','sigma.tau','mu.minor','sigma.minor','mu.major','sigma.major']] / calc_avg_cn(seg_df)
 
     acr_fig, _, _, _ = plot_acr_interactive(seg_df, csize)
 
@@ -354,56 +326,7 @@ def _gen_cnp_figure_cache(acs_fn,
 
     return cnp_fig
 
-def parse_absolute_soln_simulatedTumorData(rdata_path: str) -> pd.DataFrame:
-    """
-    function to convert an rdata file from ABSOLUTE into a pandas dataframe
-    
-    Parameters
-    ==========
-    rdata_path: str, Path
-        LOCAL path to the rdata. This cannot read a gsurl or other remote path
-    
-    Returns
-    =======
-    pd.DataFrame
-        Pandas dataframe of ABSOLUTE purity/ploidy solutions
-    """
-    
-    absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
-                           'sigma_H', 
-                           'theta_Q', 
-                           'lambda',  
-                           'SCNA_likelihood', 
-                           'Kar_likelihood', 
-                           'SSNVs_likelihood']
-    pandas2ri.activate()
-    r_list_vector = robjects.r['load'](rdata_path)
-    r_list_vector = robjects.r[r_list_vector[0]]
 
-    mode_res_idx = r_list_vector.names.index('mode.res')
-    sample_name_idx = r_list_vector.names.index('sample.name')
-
-    mode_res = r_list_vector[mode_res_idx]
-    mode_tab_idx = mode_res.names.index('mode.tab')
-    mode_tab = mode_res[mode_tab_idx]
-
-    mod_tab_df = pd.DataFrame(columns=absolute_rdata_cols)
-    mod_tab_df['alpha'] = mode_tab[:, 0]
-    mod_tab_df['tau'] = mode_tab[:, 1]
-    mod_tab_df['tau_hat'] = mode_tab[:, 7]
-    mod_tab_df['0_line'] = mode_tab[:, 3]
-    mod_tab_df['step_size'] = mode_tab[:, 4] * 2
-    mod_tab_df['1_line'] = mod_tab_df['step_size'] + mod_tab_df['0_line']
-    mod_tab_df['sigma_H'] = mode_tab[:, 8]
-    mod_tab_df['theta_Q'] = mode_tab[:, 11]
-    mod_tab_df['lambda'] = mode_tab[:, 12]
-    mod_tab_df['SCNA_likelihood'] = mode_tab[:, 15]
-    mod_tab_df['Kar_likelihood'] = mode_tab[:, 17]
-    mod_tab_df['SSNVs_likelihood'] = mode_tab[:, 20]
-
-    return mod_tab_df
-    
-    
 def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local path   
     """
     function to convert an rdata file from ABSOLUTE into a pandas dataframe
@@ -449,8 +372,22 @@ def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local pa
     mod_tab_df['Kar_likelihood'] = mode_tab[:, 17]
     mod_tab_df['SSNVs_likelihood'] = mode_tab[:, 20]
 
-    return mod_tab_df
+    # Maf file
+    maf_file = rdata_tables.rx2('mut.cn.dat')
+    mut_annot_list = mode_res.rx2('modeled.muts')
 
+    return mod_tab_df,maf_file,mut_annot_list
+
+def calculate_multiplicity(maf,alpha):
+    # Local copy number
+    q = maf['q_hat']
+    # Allele fraction
+    af = maf['alt']/(maf['alt']+maf['ref'])
+
+    # af = (alpha * mult) / (alpha * q + (1-alpha)*2)
+    mult = af * (alpha*q + (1-alpha)*2) / alpha
+
+    return(mult)
 
 def validate_purity(x):
     return (x >=0) and (x <= 1)

@@ -31,6 +31,9 @@ setuptools.setup(
                         'natsort',
                         'rpy2==3.4.2',
                         'firecloud-dalmatian',
-                        'cnv_suite'
+                        'cnv_suite',
+                        'numpy==1.26.0',
+                        'firecloud-dalmatian',
+                        'jupyter'
                        ]
 )   
