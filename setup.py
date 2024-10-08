@@ -26,15 +26,14 @@ setuptools.setup(
     install_requires = [
                         'ipykernel==6.22.0',
                         'pandas==1.5.2',
-                        'setuptools',
-                        'natsort',
-<<<<<<< HEAD
-                        'AnnoMate==0.0.1',
-=======
                         'AnnoMate>=1.0.0',
->>>>>>> origin
+                        'setuptools>=70.0.0', # security vulnerability with versions up to 69.1.1 
+                        'natsort',
                         'rpy2==3.4.2',
                         'firecloud-dalmatian',
-                        'cnv_suite'
+                        'cnv_suite',
+                        'numpy==1.26.0',
+                        'firecloud-dalmatian',
+                        'jupyter'
                        ]
 )   
