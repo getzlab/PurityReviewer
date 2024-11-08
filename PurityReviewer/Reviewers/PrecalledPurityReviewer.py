@@ -40,13 +40,43 @@ class PrecalledPurityReviewer(ReviewerTemplate):
 
     Carter, S., Cibulskis, K., Helman, E. et al. Absolute quantification of somatic DNA alterations in human cancer. Nat Biotechnol 30, 413–421 (2012). https://doi.org/10.1038/nbt.2203
     """
+    # def __init__(self):
+    #     self.start_purity_range = 0
+    #     self.end_purity_range = 100
+    #     self.precalled_purity_list = []
+        # might make this a dictionary with key => purity value, value => data_id #
+            # collision issue, not sure if the purity values are unique??
+            # would it be helpful to have the data_id # with the corresponding purity value??
+        # self.precalled_purity_list = dict()
+
     def gen_data(self,
                  description: str,
                  df: pd.DataFrame,
                  index: List,
                  annot_df: pd.DataFrame = None,
                  annot_col_config_dict: Dict = None,
-                 history_df: pd.DataFrame = None) -> GenericData:
+                 history_df: pd.DataFrame = None,
+                 ) -> GenericData:
+        
+        # Serves as the 
+
+        # create a template notebook on how to use PrecalledPurityReviewer
+
+        # this currently only takes in pairs data -> contains absolute data for WGS
+        # in purity reviewer notebook there is a print out of sample -> precalled purities
+        # need both the sample and pairs table
+            # need to merge the pairs table with sample table (sample id and precalled purity value)
+        # pair -> tumor -> 1 sample (purity will only be associated with tumor samples)
+        #      -> normal -> 2 samples
+        # need to map the tumor sample id to the sample id in sample table
+
+        # in the backend just merge the tables together (create a merge function, once data is passed in)
+        # add another column in pairs_df with precalled purity values
+            # each pair_id should have an associated 
+
+        # use precalled-purity column 
+        # precalled purities are not a unique identifier
+
         """Generate data for PurityReviewer object
         Parameters
         ==========
@@ -59,7 +89,12 @@ class PrecalledPurityReviewer(ReviewerTemplate):
         GenericData
             Data object that contains only one dataframe
         """
+
+        # create a function that merges the two tables in together 
+        # and then reassign the df dataframe to the merged dataframe
         pandas2ri.activate()
+        df = self.merge_pairs_sample_df(pairs_df, sample_df)
+    
         return GenericData(index=index,
                            description=description,
                            df=df,
@@ -182,5 +217,4 @@ class PrecalledPurityReviewer(ReviewerTemplate):
         self.add_annotation_display_component('Method', SelectAnnotationDisplay())
         self.add_annotation_display_component('Absolute_solution_idx', NumberAnnotationDisplay())
         self.add_annotation_display_component('Notes', TextAreaAnnotationDisplay())
-
         

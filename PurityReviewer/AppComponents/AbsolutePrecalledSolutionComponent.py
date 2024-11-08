@@ -70,7 +70,7 @@ def gen_custom_precalled_absolute_component(
     acs_col: str
         Column name in data with path to seg file from alleliccapseg or other tsv with allelic copy ratio measurements.
 
-    step_size: float, default=0.01
+    step_size: float, default=0.05
         Degree of precision for the slider bar
     
     csize: dict
@@ -97,9 +97,10 @@ def gen_custom_precalled_absolute_component(
     """
     
     if step_size is None:
-        step_size = 0.01
+        step_size = 0.05
+
     data_df = data.df
-    r = data_df.loc[data_id]
+    r = data_df.loc[data_id] # gets a specific row of sample data
     cnp_fig = gen_cnp_figure(r[acs_col], csize=CSIZE_DEFAULT)
     
     if manual_input_source == "Manual Purity/ploidy":
@@ -247,7 +248,7 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                                 [
                                     dbc.Row(
                                         dcc.RangeSlider(
-                                            id='custom-cnp-slider', min=0.0, max=100.0,
+                                            id='custom-cnp-slider', min=0.0, max=50.0,
                                             step=step_size,
                                             allowCross=False,
                                             value=[0.5, 1.0],
