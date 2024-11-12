@@ -447,4 +447,21 @@ def download_rdata(rdata_fn_s, rdata_dir, force_download=False):
         local_rdata_dict[pair_id] = local_absolute_rdata_fn
 
     return pd.Series(local_rdata_dict)
+
+def merge_pairs_precalled_purities_df(pairs_df, precalled_purity_df):
+    """
+    Merges the pairs dataframe with the precalled purity dataframe based on the tumor sample id
+
+    pairs_df: df, dataframe of the pairs sample data
+
+    precalled_purity_df: df, dataframe of the precalled purity values with sample id
+
+    Returns:
+        Merged dataframe with the precalled purity values added as a new column to the original pairs_df dataframe
+    """
+
+    pairs_df = pairs_df.copy()
+    precalled_purity_df = precalled_purity_df.copy()
+
+    return pairs_df.merge(precalled_purity_df, how="inner", left_on="case_sample", right_on="sample_id")
     

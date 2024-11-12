@@ -93,7 +93,7 @@ class PrecalledPurityReviewer(ReviewerTemplate):
         # create a function that merges the two tables in together 
         # and then reassign the df dataframe to the merged dataframe
         pandas2ri.activate()
-        df = self.merge_pairs_sample_df(pairs_df, sample_df)
+        # df = self.merge_pairs_sample_df(pairs_df, sample_df)
     
         return GenericData(index=index,
                            description=description,
