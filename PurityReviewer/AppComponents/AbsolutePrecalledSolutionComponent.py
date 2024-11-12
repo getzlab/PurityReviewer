@@ -31,8 +31,8 @@ def gen_custom_precalled_absolute_component(
     slider_value,  # dash app parameters come first
     purity,
     ploidy,
-    line_0,
-    line_1,
+    # line_0,
+    # line_1,
     manual_input_source,
     acs_col,
     step_size=None,
@@ -95,7 +95,10 @@ def gen_custom_precalled_absolute_component(
 
     float Current/recalculated 1-line
     """
-    
+    # defaults to selecting all precalled purity values
+    purity_range_lower = 0
+    purity_range_upper = 100
+
     if step_size is None:
         step_size = 0.05
 
@@ -103,23 +106,30 @@ def gen_custom_precalled_absolute_component(
     r = data_df.loc[data_id] # gets a specific row of sample data
     cnp_fig = gen_cnp_figure(r[acs_col], csize=CSIZE_DEFAULT)
     
-    if manual_input_source == "Manual Purity/ploidy":
-        cn_0, cn_delta = calc_cn_levels(purity, ploidy)
+    if manual_input_source == "Select All":
         
-        line_0 = round(cn_0, 2)
-        line_1 = round(cn_0 + cn_delta, 2)
+        # displays all precalled purity values!!
+        line_0 = 0
+        line_1 = 50 
+
         slider_value = [line_0, line_1]
     else:
         
         if manual_input_source == "Use slider":
             line_0 = slider_value[0]
             line_1 = slider_value[1]
-            
-        # elif manual_input_source == "Manual 0/1 line":
-        #     slider_value = [line_0, line_1]
-        
-        # purity = round((1 - (float(line_0) / float(line_1))) / step_size) * step_size
-        # ploidy = round(((2 * (1 - line_0) * (1 - purity)) / (purity * line_0)) / step_size) * step_size  # tau, not tau_g
+
+        # gets the lower and upper range of purity values
+        purity_range_lower = purity - (line_1 - line_0)
+        purity_range_upper = purity + (line_1 - line_0)
+
+        # checks to make sure you dont get negative purity values
+        if purity_range_lower < 0:
+            purity_range_lower = 0
+
+        # checks to make sure purity value isn't greater than 100%
+        if purity_range_upper > 100:
+            purity_range_upper = 100
         
     # add 1 and 0 lines
     cnp_fig_with_lines = go.Figure(cnp_fig)
@@ -136,7 +146,6 @@ def gen_custom_precalled_absolute_component(
                                      line_width=1
                                      )
         i += 1
-
     
     return [
         slider_value,
@@ -144,7 +153,9 @@ def gen_custom_precalled_absolute_component(
         purity,
         ploidy,
         line_0, 
-        line_1
+        line_1,
+        purity_range_lower,
+        purity_range_upper
     ]
     
 def gen_precalled_absolute_custom_solution_layout(step_size=None):
@@ -157,7 +168,7 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
         a plotly dash layout with a copy number plot and multiple options to set the purity and ploidy or set the 0 and 1 line
     """
     if step_size is None:
-        step_size = 0.01
+        step_size = 0.05
     return [
             html.Div(
                 [
@@ -175,93 +186,28 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                                     value="Use slider",
                                     id="manual-input-source-radioitems",
                                 ),
-                            ]
-                        )
-                    ]),
-                    dbc.Row([
-                        dbc.Col(
-                            [
-                                html.Div([
-                                    html.P('Purity: ', style={'display': 'inline'}),
-                                    html.Div(
-                                        dbc.Input(
-                                            id='custom-cnp-graph-purity',
-                                            type='number',
-                                            min=0, max=1.0, step=step_size
-                                        ),
-                                        style={'display': 'inline'}
-                                    )
-                                ]),
-                                html.Div([
-                                    html.P('Ploidy: ', style={'display': 'inline'}),
-                                    html.Div(
-                                        dbc.Input(
-                                            id='custom-cnp-graph-ploidy',
-                                            type='number',
-                                            min=0, step=step_size
-                                        ),
-                                        style={'display': 'inline'}
-                                    )
-                                ]),
-                            ],
-                           md=2
-                        ),
-                        dbc.Col(
-                            [
-                                html.Div([
-                                   html.P('1-line: ', style={'display': 'inline'}),
-                                   html.Div(
-                                       dbc.Input(
-                                           id='custom-cnp-graph-1-line',
-                                           type='number',
-                                           min=0, step=step_size
-                                       ),
-                                       style={'display': 'inline'}
-                                   )
-                               ]),
-                            #    html.Div([
-                            #        html.P('0-line: ', style={'display': 'inline'}),
-                            #        html.Div(
-                            #            dbc.Input(
-                            #                id='custom-cnp-graph-0-line',
-                            #                type='number',
-                            #                min=0, step=step_size
-                            #            ),
-                            #            style={'display': 'inline'}
-                            #        )
-                            #    ]),
-                            ],
-                            md=2
-                        )
-                    ]),
+                            ])
+                        ]),
                     dbc.Row(
                         [
-                            dbc.Col(
-                                [dcc.Graph(id='custom-cnp-graph', figure={})],
-                                md=10
-                            ),
-                            
-                            
-                            
-                            
-                            dbc.Col(
-                                [
-                                    dbc.Row(
-                                        dcc.RangeSlider(
-                                            id='custom-cnp-slider', min=0.0, max=50.0,
-                                            step=step_size,
-                                            allowCross=False,
-                                            value=[0.5, 1.0],
-                                            marks={i: f'{i}' for i in range(0, 3, 1)},
-                                            vertical=True,
-                                            tooltip={"placement": "right", "always_visible": True}
-                                        )
-                                    )
-                                ], 
-                                md=1
+                          
+                            # creating a horizontal slider for selecting a range of purity values
+                            dcc.RangeSlider(
+                                id='custom-cnp-slider', min=0.0, max=50.0,
+                                step=step_size,
+                                allowCross=False,
+                                value=[0.5, 1.0], # CHANGE THIS VALUE TO WHATEVER MAKES SENSE FOR THIS ARGUMENT
+
+                                marks={i: f'{i}' for i in range(0, 3, 1)}, # CHANGE THIS TO HAVE THE RIGHT RANGE -> (0, 50, 5)
+                                
+                                vertical=False, # want to make a horizontal slider
+
+                                # FIGURE OUT WHAT THIS DOES
+                                tooltip={"placement": "right", "always_visible": True}
                             )
-                        ]
-                    ),
+                        ], 
+                        md=10
+                    )
                 ]
             )
         ]
@@ -278,9 +224,9 @@ def gen_absolute_custom_solution_component(step_size=None):
     
     return AppComponent(
         'Manual Purity',
-        layout=gen_absolute_custom_solution_layout(step_size=step_size),
-        new_data_callback=gen_custom_absolute_component,
-        internal_callback=gen_custom_absolute_component,
+        layout= gen_precalled_absolute_custom_solution_layout(step_size=step_size),
+        new_data_callback=gen_custom_precalled_absolute_component,
+        internal_callback=gen_custom_precalled_absolute_component,
         callback_input=[
             Input('custom-cnp-slider', 'value'),
             Input('custom-cnp-graph-purity', 'value'),
