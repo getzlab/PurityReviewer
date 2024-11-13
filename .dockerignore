@@ -1,0 +1,8 @@
+*.idea/*
+*.egg-info*
+*__pycache__*
+*/data/*
+*.DS_Store*
+*local_rdata*
+*SimulatedTumorData*
+purityEnv/
