@@ -19,6 +19,7 @@ import pickle
 from typing import Union, List, Dict
 import sys
 from cnv_suite import calc_cn_levels
+import pandas as pd
 
 MANUAL_INPUT_SOURCE = ["Use slider", "Select All"]
 
@@ -138,6 +139,7 @@ def gen_custom_precalled_absolute_component(
     line_difference = line_1 - line_0
 
     # creates a horizontal slide
+    #MODIFY THAT IT PROPERLY CREATES A HORIZONTAL SLIDER
     while line_height < 2:
         line_height = line_0 + (line_difference * i)
         cnp_fig_with_lines.add_hline(y=line_height,
@@ -196,13 +198,9 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                                 id='custom-cnp-slider', min=0.0, max=50.0,
                                 step=step_size,
                                 allowCross=False,
-                                value=[0.5, 1.0], # CHANGE THIS VALUE TO WHATEVER MAKES SENSE FOR THIS ARGUMENT
-
-                                marks={i: f'{i}' for i in range(0, 3, 1)}, # CHANGE THIS TO HAVE THE RIGHT RANGE -> (0, 50, 5)
-                                
+                                value=[0, 5], # initial value on slider 
+                                marks={i: f'{i}' for i in range(0, 50, 5)}, 
                                 vertical=False, # want to make a horizontal slider
-
-                                # FIGURE OUT WHAT THIS DOES
                                 tooltip={"placement": "right", "always_visible": True}
                             )
                         ], 
@@ -211,6 +209,35 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                 ]
             )
         ]
+
+def filter_purity_values(data, purity_val_lower_range, purity_val_upper_range, 
+                         current_purity_val, purity_val_col) -> GenericData:
+    """
+    Only returns the purity values within a specific range
+
+    Parameters:
+        data: GenericData, 
+        purity_value_lower_range:
+        purity_value_upper_range:
+        purity_val_col: str, name of the column that has the purity value
+
+    Return:
+        returns a generic data object with only rows that contained purity values 
+    in a specific range
+    """
+    data = data.copy()
+
+    data_df = data.df
+    annotation_df = data.annot_df
+    purity_val_range = purity_val_upper_range - purity_val_lower_range
+
+    filter_row_idx = pd.where((data_df[purity_val_col] >= current_purity_val - purity_val_range) and (data_df[purity_val_col] <= current_purity_val + purity_val_range))
+
+    # only gets the purity values within a specific range of the current purity value
+    data.df = data_df.iloc[filter_row_idx]
+    data.annot_df = annotation_df.iloc[filter_row_idx]
+
+    return data
 
 def gen_absolute_custom_solution_component(step_size=None):
     """
@@ -223,7 +250,7 @@ def gen_absolute_custom_solution_component(step_size=None):
     """
     
     return AppComponent(
-        'Manual Purity',
+        'Precalled Purity',
         layout= gen_precalled_absolute_custom_solution_layout(step_size=step_size),
         new_data_callback=gen_custom_precalled_absolute_component,
         internal_callback=gen_custom_precalled_absolute_component,
