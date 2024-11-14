@@ -31,6 +31,8 @@ import sys
 
 from PurityReviewer.AppComponents.AbsoluteSolutionsReportComponent import gen_absolute_solutions_report_component
 from PurityReviewer.AppComponents.AbsoluteCustomSolutionComponent import gen_absolute_custom_solution_component
+from PurityReviewer.AppComponents.AbsoluteCustomSolutionComponent import gen_absolute_precalled_custom_solution_component
+
 from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, parse_absolute_soln, validate_purity, validate_ploidy, CSIZE_DEFAULT
 
 
@@ -162,6 +164,14 @@ class PrecalledPurityReviewer(ReviewerTemplate):
             cols=sample_info_cols, 
             data_attribute='df',
             link_display_name=None
+        )
+
+        # add component that get purity values within a specific range
+        app.add_component(
+            gen_absolute_precalled_custom_solution_component(step_size=step_size),
+            acs_col=acs_col,
+            step_size=step_size,
+            
         )
 
         app.add_component(
