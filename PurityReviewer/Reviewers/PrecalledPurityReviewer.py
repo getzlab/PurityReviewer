@@ -107,6 +107,7 @@ class PrecalledPurityReviewer(ReviewerTemplate):
     def gen_review_app(self,
                        sample_info_cols: List[str],
                        acs_col,
+                       purity_col,
                        maf_col,
                        rdata_fn_col,
                        mut_fig_hover_data=None,
@@ -122,7 +123,10 @@ class PrecalledPurityReviewer(ReviewerTemplate):
             
         acs_col: str
             Column name in data with path to seg file from alleliccapseg or other tsv with allelic copy ratio measurements
-            
+
+        purity_col: str
+            Column name in data with the purity values
+
         maf_col: str
             Column name in data with path to maf file (mutation validator validated maf)
             
@@ -166,19 +170,18 @@ class PrecalledPurityReviewer(ReviewerTemplate):
             link_display_name=None
         )
 
-        # add component that get purity values within a specific range
+        # add component that get purity values within a specific rang
         app.add_component(
-            gen_absolute_precalled_custom_solution_component(step_size=step_size),
+            gen_absolute_precalled_custom_solution_component(step_size=step_size, purity_col=purity_col),
             acs_col=acs_col,
             step_size=step_size,
-            
+            csize=CSIZE_DEFAULT,
         )
 
         app.add_component(
             gen_absolute_custom_solution_component(step_size=step_size),
             acs_col=acs_col,
             step_size=step_size,
-            csize=CSIZE_DEFAULT,
         )
 
         return app
@@ -227,4 +230,3 @@ class PrecalledPurityReviewer(ReviewerTemplate):
         self.add_annotation_display_component('Method', SelectAnnotationDisplay())
         self.add_annotation_display_component('Absolute_solution_idx', NumberAnnotationDisplay())
         self.add_annotation_display_component('Notes', TextAreaAnnotationDisplay())
-        
