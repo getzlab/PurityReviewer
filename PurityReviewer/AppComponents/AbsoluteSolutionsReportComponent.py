@@ -126,9 +126,6 @@ def gen_absolute_solutions_report_new_data(
                                         )
             i += 1
 
-
-
-#
         #mut_fig_with_lines.update_yaxes(range=[0, half_1_line * 2])
         
         purity = solution_data['alpha']
@@ -235,15 +232,21 @@ def gen_absolute_solutions_report_internal(
     return output_data
 
 
-def gen_absolute_solutions_report_layout():
+def gen_absolute_solutions_report_layout(data_to_display:pd.DataFrame | None =None):
     """
     Generates the layout of the ABSOLUTE solutions report component in the dashboard
 
     Returns
     =======
     dash.html
-        a plotly dash layout with a Table with selectable rows for the ABSOLUTE solutions, a copy number profile, and mutation profile
+        a plotly dash layout with a Tablwith selectable rows for the ABSOLUTE solutions, a copy number profile, and mutation profile
     """
+
+    if data_to_display is None:
+        data_to_display = pd.DataFrame(columns=absolute_rdata_cols).to_dict(
+                   'records')
+
+    # modify this to check if 
     return html.Div(
         children=[
             html.H2('Absolute Solutions Table'),
@@ -253,8 +256,7 @@ def gen_absolute_solutions_report_layout():
                    {"name": i,
                     "id": i} for i in absolute_rdata_cols
                ],
-               data=pd.DataFrame(columns=absolute_rdata_cols).to_dict(
-                   'records'),
+               data=data_to_display,
                editable=False,
                filter_action="native",
                sort_action="native",

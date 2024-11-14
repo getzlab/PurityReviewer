@@ -33,8 +33,9 @@ def gen_custom_precalled_absolute_component(
     purity,
     line_0,
     line_1,
+    # might need to add on acs_col back to list of parameters
     manual_input_source,
-    purity_col,
+    purity_col='PCA__ABSOLUTE__Cancer_DNA_fraction',
     step_size=None,
     csize=None
 ):
@@ -122,8 +123,9 @@ def gen_custom_precalled_absolute_component(
             line_1 = slider_value[1]
 
         # gets the lower and upper range of purity values
-        purity_range_lower = current_purity_value - (line_1 - line_0)
-        purity_range_upper = current_purity_value + (line_1 - line_0)
+        # accounts for the floating point precision issues
+        purity_range_lower = current_purity_value*100 - (line_1 - line_0)
+        purity_range_upper = current_purity_value*100 + (line_1 - line_0)
 
         # checks to make sure you dont get negative purity values
         if purity_range_lower < 0:
@@ -133,7 +135,7 @@ def gen_custom_precalled_absolute_component(
         if purity_range_upper > 100:
             purity_range_upper = 100
         
-    purity_value_idx = pd.where( (data_df[purity_col] >= purity_range_lower) and (data_df[purity_col] <= purity_range_upper) )
+    purity_value_idx = pd.where( (data_df[purity_col]*100 >= purity_range_lower) and (data_df[purity_col]*100 <= purity_range_upper) )
     precalled_sample_values = data_df.iloc[purity_value_idx]
     
     return [
@@ -178,19 +180,18 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                         ]),
                     dbc.Row(
                         [
-                          
                             # creating a horizontal slider for selecting a range of purity values
-                            dcc.RangeSlider(
-                                id='custom-precalled-slider', min=0.0, max=50.0,
+                            dcc.Slider(
+                                id='custom-precalled-slider', 
+                                min=0.0, 
+                                max=50.0,
                                 step=step_size,
-                                allowCross=False,
-                                value=[0, 5], # initial value on slider 
+                                value= 5, # initial value on slider 
                                 marks={i: f'{i}' for i in range(0, 50, 5)}, 
-                                vertical=False, # want to make a horizontal slider
                                 tooltip={"placement": "right", "always_visible": True}
                             )
                         ], 
-                        md=10
+                        # md=30
                     )
                 ]
             )
@@ -225,6 +226,7 @@ def filter_purity_values(data, purity_val_lower_range, purity_val_upper_range,
 
     return data
 
+# def gen_absolute_precalled_custom_solution_component(step_size=None, purity_col:str|None=None):
 def gen_absolute_precalled_custom_solution_component(step_size=None):
     """
     Generates an AppComponent defining the interactive elements for setting a manual purity/ploidy solution using a copy number profile
