@@ -31,11 +31,10 @@ def gen_custom_precalled_absolute_component(
     data_id,
     slider_value,  # dash app parameters come first
     purity,
-    ploidy,
-    # line_0,
-    # line_1,
+    line_0,
+    line_1,
     manual_input_source,
-    acs_col,
+    purity_col,
     step_size=None,
     csize=None
 ):
@@ -56,20 +55,17 @@ def gen_custom_precalled_absolute_component(
     purity: float
         Current value for purity
 
-    ploidy: float
-        Current value for ploidy
-
     line_0: float
         Current value of the 0-line
 
     line_1: float
         Current value of the 1-line
 
-    manual_input_source: str ["Manual Purity/ploidy", "Use slider", "Manual 0/1 line"]
+    manual_input_source: str ["Use slider", "Select All"]
         Which mode to set get the purity solution and replot the copy number profile with the corresponding comb
         
-    acs_col: str
-        Column name in data with path to seg file from alleliccapseg or other tsv with allelic copy ratio measurements.
+    purity_col: str
+        Column name in data with path to precalled purity values
 
     step_size: float, default=0.05
         Degree of precision for the slider bar
@@ -82,19 +78,23 @@ def gen_custom_precalled_absolute_component(
     List[float]
         List of length 2 where the 0-index entry is the current/recalculated value of the 0-line, and the 1-index entry is the current value of the 1-line. Used to update the slider bar
 
-    plotly.Figure
-        Copy number profile figure with the comb lines plotted on top
-
     float
         Current/recalculated purity value
-
-    float
-        Current/recalculated ploidy value
         
     float
         Current/recalculated 0-line
 
-    float Current/recalculated 1-line
+    float 
+        Current/recalculated 1-line
+    
+    float
+        lower bound precalled purity value
+    
+    float
+        upper bound precalled purity value
+
+    pd.DataFrame
+        all samples within the lower and upper bound of the precalled purity value
     """
     # defaults to selecting all precalled purity values
     purity_range_lower = 0
@@ -104,8 +104,9 @@ def gen_custom_precalled_absolute_component(
         step_size = 0.05
 
     data_df = data.df
-    r = data_df.loc[data_id] # gets a specific row of sample data
-    cnp_fig = gen_cnp_figure(r[acs_col], csize=CSIZE_DEFAULT)
+    data_sample = data_df.loc[data_id] # gets a specific row of sample data
+    current_purity_value = data_sample[purity_col] # gets the current purity value
+    
     
     if manual_input_source == "Select All":
         
@@ -121,8 +122,8 @@ def gen_custom_precalled_absolute_component(
             line_1 = slider_value[1]
 
         # gets the lower and upper range of purity values
-        purity_range_lower = purity - (line_1 - line_0)
-        purity_range_upper = purity + (line_1 - line_0)
+        purity_range_lower = current_purity_value - (line_1 - line_0)
+        purity_range_upper = current_purity_value + (line_1 - line_0)
 
         # checks to make sure you dont get negative purity values
         if purity_range_lower < 0:
@@ -132,32 +133,17 @@ def gen_custom_precalled_absolute_component(
         if purity_range_upper > 100:
             purity_range_upper = 100
         
-    # add 1 and 0 lines
-    cnp_fig_with_lines = go.Figure(cnp_fig)
-    i = 0
-    line_height = line_0
-    line_difference = line_1 - line_0
-
-    # creates a horizontal slide
-    #MODIFY THAT IT PROPERLY CREATES A HORIZONTAL SLIDER
-    while line_height < 2:
-        line_height = line_0 + (line_difference * i)
-        cnp_fig_with_lines.add_hline(y=line_height,
-                                     line_dash="dash",
-                                     line_color='black',
-                                     line_width=1
-                                     )
-        i += 1
+    purity_value_idx = pd.where( (data_df[purity_col] >= purity_range_lower) and (data_df[purity_col] <= purity_range_upper) )
+    precalled_sample_values = data_df.iloc[purity_value_idx]
     
     return [
         slider_value,
-        cnp_fig_with_lines,
         purity,
-        ploidy,
         line_0, 
         line_1,
         purity_range_lower,
-        purity_range_upper
+        purity_range_upper,
+        precalled_sample_values
     ]
     
 def gen_precalled_absolute_custom_solution_layout(step_size=None):
@@ -186,7 +172,7 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                                         } for v in MANUAL_INPUT_SOURCE
                                     ],
                                     value="Use slider",
-                                    id="manual-input-source-radioitems",
+                                    id="precalled-selection-type-radioitems",
                                 ),
                             ])
                         ]),
@@ -195,7 +181,7 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                           
                             # creating a horizontal slider for selecting a range of purity values
                             dcc.RangeSlider(
-                                id='custom-cnp-slider', min=0.0, max=50.0,
+                                id='custom-precalled-slider', min=0.0, max=50.0,
                                 step=step_size,
                                 allowCross=False,
                                 value=[0, 5], # initial value on slider 
@@ -239,7 +225,7 @@ def filter_purity_values(data, purity_val_lower_range, purity_val_upper_range,
 
     return data
 
-def gen_absolute_custom_solution_component(step_size=None):
+def gen_absolute_precalled_custom_solution_component(step_size=None):
     """
     Generates an AppComponent defining the interactive elements for setting a manual purity/ploidy solution using a copy number profile
 
@@ -255,20 +241,10 @@ def gen_absolute_custom_solution_component(step_size=None):
         new_data_callback=gen_custom_precalled_absolute_component,
         internal_callback=gen_custom_precalled_absolute_component,
         callback_input=[
-            Input('custom-cnp-slider', 'value'),
-            Input('custom-cnp-graph-purity', 'value'),
-            Input('custom-cnp-graph-ploidy', 'value'),
-            Input('custom-cnp-graph-0-line', 'value'),
-            Input('custom-cnp-graph-1-line', 'value'),
-            Input('manual-input-source-radioitems', 'value')
+            Input('custom-precalled-slider', 'value'),
+            Input('precalled-selection-type-radioitems', 'value')
         ],
         callback_output=[
-            Output('custom-cnp-slider', 'value'),
-            Output('custom-cnp-graph', 'figure'),
-            Output('custom-cnp-graph-purity', 'value'),
-            Output('custom-cnp-graph-ploidy', 'value'),
-            Output('custom-cnp-graph-0-line', 'value'),
-            Output('custom-cnp-graph-1-line', 'value')
+            Output('custom-precalled-slider', 'value'),
         ],
     )
-    
