@@ -232,7 +232,8 @@ def gen_absolute_solutions_report_internal(
     return output_data
 
 
-def gen_absolute_solutions_report_layout(data_to_display:pd.DataFrame | None =None):
+# def gen_absolute_solutions_report_layout(data_to_display:pd.DataFrame | None =None):
+def gen_absolute_solutions_report_layout():
     """
     Generates the layout of the ABSOLUTE solutions report component in the dashboard
 
@@ -242,9 +243,9 @@ def gen_absolute_solutions_report_layout(data_to_display:pd.DataFrame | None =No
         a plotly dash layout with a Tablwith selectable rows for the ABSOLUTE solutions, a copy number profile, and mutation profile
     """
 
-    if data_to_display is None:
-        data_to_display = pd.DataFrame(columns=absolute_rdata_cols).to_dict(
-                   'records')
+    # if data_to_display is None:
+    #     data_to_display = pd.DataFrame(columns=absolute_rdata_cols).to_dict(
+    #                'records')
 
     # modify this to check if 
     return html.Div(
@@ -256,7 +257,8 @@ def gen_absolute_solutions_report_layout(data_to_display:pd.DataFrame | None =No
                    {"name": i,
                     "id": i} for i in absolute_rdata_cols
                ],
-               data=data_to_display,
+               data=pd.DataFrame(columns=absolute_rdata_cols).to_dict(
+                   'records'),
                editable=False,
                filter_action="native",
                sort_action="native",
