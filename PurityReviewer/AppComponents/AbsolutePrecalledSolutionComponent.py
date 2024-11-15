@@ -226,8 +226,7 @@ def filter_purity_values(data, purity_val_lower_range, purity_val_upper_range,
 
     return data
 
-# def gen_absolute_precalled_custom_solution_component(step_size=None, purity_col:str|None=None):
-def gen_absolute_precalled_custom_solution_component(step_size=None):
+def gen_absolute_precalled_custom_solution_component(step_size=None, purity_col:str|None=None):
     """
     Generates an AppComponent defining the interactive elements for setting a manual purity/ploidy solution using a copy number profile
 
