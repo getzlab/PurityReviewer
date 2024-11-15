@@ -31,9 +31,6 @@ def gen_custom_precalled_absolute_component(
     data_id,
     slider_value,  # dash app parameters come first
     purity,
-    line_0,
-    line_1,
-    # might need to add on acs_col back to list of parameters
     manual_input_source,
     purity_col='PCA__ABSOLUTE__Cancer_DNA_fraction',
     step_size=None,
@@ -137,7 +134,9 @@ def gen_custom_precalled_absolute_component(
         
     purity_value_idx = pd.where( (data_df[purity_col]*100 >= purity_range_lower) and (data_df[purity_col]*100 <= purity_range_upper) )
     precalled_sample_values = data_df.iloc[purity_value_idx]
-    
+    # your parameters have to match the inputs in the same order
+    # your returns have to match the outputs in the same order
+
     return [
         slider_value,
         purity,
@@ -226,7 +225,7 @@ def filter_purity_values(data, purity_val_lower_range, purity_val_upper_range,
 
     return data
 
-def gen_absolute_precalled_custom_solution_component(step_size=None, purity_col:str|None=None):
+def gen_absolute_precalled_custom_solution_component(step_size=None):
     """
     Generates an AppComponent defining the interactive elements for setting a manual purity/ploidy solution using a copy number profile
 
@@ -237,8 +236,8 @@ def gen_absolute_precalled_custom_solution_component(step_size=None, purity_col:
     """
     
     return AppComponent(
-        'Precalled Purity',
-        layout= gen_precalled_absolute_custom_solution_layout(step_size=step_size),
+        'Precalled Purity', # table title
+        layout= gen_precalled_absolute_custom_solution_layout(step_size=step_size), # html layout of app component
         new_data_callback=gen_custom_precalled_absolute_component,
         internal_callback=gen_custom_precalled_absolute_component,
         callback_input=[

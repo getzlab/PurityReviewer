@@ -152,11 +152,10 @@ class PrecalledPurityReviewer(ReviewerTemplate):
         """
         app = ReviewDataApp()
 
-        # add component that get purity values within a specific range
+        # add component that gets purity values within a specific range
         app.add_component(
             gen_absolute_precalled_custom_solution_component(step_size=step_size),
             purity_col=purity_col,
-            # acs_col=acs_col,
             step_size=step_size,
             csize=CSIZE_DEFAULT,
         )
