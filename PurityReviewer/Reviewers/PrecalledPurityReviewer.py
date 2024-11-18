@@ -153,23 +153,29 @@ class PrecalledPurityReviewer(ReviewerTemplate):
         app = ReviewDataApp()
 
         # add component that gets purity values within a specific range
+        mut_fig_hover_data = [] if mut_fig_hover_data is None else mut_fig_hover_data
         app.add_component(
             gen_absolute_precalled_custom_solution_component(step_size=step_size),
+            rdata_fn_col=rdata_fn_col,
+            acs_col=acs_col, 
+            maf_col=maf_col,
+            mut_fig_hover_data=mut_fig_hover_data,
+            custom_parse_absolute_soln=custom_parse_absolute_soln,
             purity_col=purity_col,
             step_size=step_size,
             csize=CSIZE_DEFAULT,
         )
 
-        mut_fig_hover_data = [] if mut_fig_hover_data is None else mut_fig_hover_data
-        app.add_component(
-            gen_absolute_solutions_report_component(),
-            rdata_fn_col=rdata_fn_col,
-            acs_col=acs_col, 
-            maf_col=maf_col,
-            mut_fig_hover_data=mut_fig_hover_data,
-            csize=CSIZE_DEFAULT,
-            custom_parse_absolute_soln=custom_parse_absolute_soln,
-        )
+        # mut_fig_hover_data = [] if mut_fig_hover_data is None else mut_fig_hover_data
+        # app.add_component(
+        #     gen_absolute_solutions_report_component(),
+        #     rdata_fn_col=rdata_fn_col,
+        #     acs_col=acs_col, 
+        #     maf_col=maf_col,
+        #     mut_fig_hover_data=mut_fig_hover_data,
+        #     csize=CSIZE_DEFAULT,
+        #     custom_parse_absolute_soln=custom_parse_absolute_soln,
+        # )
 
         app.add_component(
             gen_annotated_data_info_table_component(), 
