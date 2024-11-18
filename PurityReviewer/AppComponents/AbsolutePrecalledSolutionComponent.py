@@ -30,7 +30,7 @@ def gen_custom_precalled_absolute_component(
     data: GenericData,
     data_id,
     slider_value,  # dash app parameters come first
-    purity,
+    # purity, # Would need to add Input object to callback_inputs in the gen_precalled_custom_component function
     manual_input_source,
     purity_col='PCA__ABSOLUTE__Cancer_DNA_fraction',
     step_size=None,
@@ -115,14 +115,15 @@ def gen_custom_precalled_absolute_component(
         slider_value = [line_0, line_1]
     else:
         
-        if manual_input_source == "Use slider":
-            line_0 = slider_value[0]
-            line_1 = slider_value[1]
+        # if manual_input_source == "Use slider":
+            # slide_value 
+            # line_0 = slider_value[0]
+            # line_1 = slider_value[1]
 
         # gets the lower and upper range of purity values
         # accounts for the floating point precision issues
-        purity_range_lower = current_purity_value*100 - (line_1 - line_0)
-        purity_range_upper = current_purity_value*100 + (line_1 - line_0)
+        purity_range_lower = current_purity_value*100 - slider_value  #(line_1 - line_0)
+        purity_range_upper = current_purity_value*100 + slider_value #(line_1 - line_0)
 
         # checks to make sure you dont get negative purity values
         if purity_range_lower < 0:
@@ -132,19 +133,23 @@ def gen_custom_precalled_absolute_component(
         if purity_range_upper > 100:
             purity_range_upper = 100
         
-    purity_value_idx = pd.where( (data_df[purity_col]*100 >= purity_range_lower) and (data_df[purity_col]*100 <= purity_range_upper) )
-    precalled_sample_values = data_df.iloc[purity_value_idx]
+    # purity_values = data_df[purity_col] # gets the purity values
+    # purity_values_in_range = purity_values.where((purity_values*100 >= purity_range_lower) & (purity_values*100 <= purity_range_upper))
+    # purity_value_idx = purity_range_lower
+    # precalled_sample_values = data_df.loc[purity_values_in_range]
+    
+    precalled_sample_values_df = data_df.loc[(data_df[purity_col]*100 >= purity_range_lower) & (data_df[purity_col]*100 <= purity_range_upper)]
+    print("precalled sample values dataframe")
+    print(precalled_sample_values_df)
     # your parameters have to match the inputs in the same order
     # your returns have to match the outputs in the same order
 
     return [
         slider_value,
-        purity,
-        line_0, 
-        line_1,
-        purity_range_lower,
-        purity_range_upper,
-        precalled_sample_values
+        current_purity_value,
+        # purity_range_lower,
+        # purity_range_upper,
+        # precalled_sample_values
     ]
     
 def gen_precalled_absolute_custom_solution_layout(step_size=None):
@@ -157,10 +162,11 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
         a plotly dash layout with a copy number plot and multiple options to set the purity and ploidy or set the 0 and 1 line
     """
     if step_size is None:
-        step_size = 0.05
+        step_size = 5
     return [
             html.Div(
                 [
+                    # gives user option of filtering out specific purity values based on slider input
                     dbc.Row([
                         html.Div(
                             [
@@ -177,9 +183,20 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                                 ),
                             ])
                         ]),
+                    # displays the current purity value
+                    dbc.Row([
+                        html.Div(
+                            [
+                                # might need to make a column or do inline component
+                                dbc.Label("Current Purity Value: "),
+                                html.Label(children="", id="current-purity-value"), # initialize label to empty string
+                            ])
+                        ]),
+
                     dbc.Row(
                         [
                             # creating a horizontal slider for selecting a range of purity values
+                            # try to find parameter that snaps to whole integer, multiples of 5
                             dcc.Slider(
                                 id='custom-precalled-slider', 
                                 min=0.0, 
@@ -190,7 +207,6 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                                 tooltip={"placement": "right", "always_visible": True}
                             )
                         ], 
-                        # md=30
                     )
                 ]
             )
@@ -243,8 +259,22 @@ def gen_absolute_precalled_custom_solution_component(step_size=None):
         callback_input=[
             Input('custom-precalled-slider', 'value'),
             Input('precalled-selection-type-radioitems', 'value')
+            # make sure the order and value for callback_input Input matches the inputs
+            # for the gen_custom_precalled_absolute_component
+            # i.e. slider input, radio item input
         ],
         callback_output=[
             Output('custom-precalled-slider', 'value'),
+            Output('current-purity-value', 'children')
+
+
+        # slider_value,
+        # purity_range_lower,
+        # purity_range_upper,
+        # precalled_sample_values
+
+            # make sure the order and value for callback_output Output matches the outputs
+            # for the gen_custom_precalled_absolute_component
+            # i.e. slider input, dataframe of the precalled purity values
         ],
     )

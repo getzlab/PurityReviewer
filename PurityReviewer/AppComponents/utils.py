@@ -463,5 +463,5 @@ def merge_pairs_precalled_purities_df(pairs_df, precalled_purity_df):
     pairs_df = pairs_df.copy()
     precalled_purity_df = precalled_purity_df.copy()
 
-    return pairs_df.merge(precalled_purity_df, how="inner", left_on="case_sample", right_on="sample_id")
+    return pairs_df.merge(precalled_purity_df, how="inner", left_on="case_sample", right_on="sample_id").set_index('tumor_submitter_id')
     
