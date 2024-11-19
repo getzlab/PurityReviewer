@@ -130,10 +130,17 @@ def gen_custom_precalled_absolute_component(
         if purity_range_upper > 100:
             purity_range_upper = 100
         
-    purity_values = data_df[purity_col] # gets the purity values
+    purity_values = data_df[purity_col].copy() # gets the purity values
+    purity_values = purity_values.reset_index(drop=True) # creates numerical indices and drops original index
+    
     # gets indices of samples with purity values within range
-    indices_of_purity_values_in_range = np.where((purity_values*100 >= purity_range_lower) & (purity_values*100 <= purity_range_upper))
-    indices_of_purity_values_in_range.append([data_id])
+    indices_of_purity_values_in_range = np.where((purity_values*100 >= purity_range_lower) & (purity_values*100 <= purity_range_upper))[0] # makes sure you get the array of indices
+
+    # DEBUGGING!!
+    print("these are indices that are within range of the current purity value")
+    print(indices_of_purity_values_in_range)
+    print() 
+    print(data_df[purity_col].iloc[indices_of_purity_values_in_range])
 
     # from absolute solutions report component gen_absolute_solutions_report_new_data
     parse_absolute_soln_func = custom_parse_absolute_soln if custom_parse_absolute_soln is not None else parse_absolute_soln
@@ -154,7 +161,6 @@ def gen_custom_precalled_absolute_component(
     ploidy = 0
     
     if absolute_rdata_df.shape[0] > 0:
-        # MIGHT NEED TO FIX THIS LATER ON!!!
         solution_data = absolute_rdata_df.iloc[selected_row_array[0]]
         maf_soln = pd.concat([maf, maf_annot_list[selected_row_array[0]]],axis=1)
         maf_soln = maf_soln[maf_soln['Variant_Type']=='SNP']
@@ -184,24 +190,30 @@ def gen_custom_precalled_absolute_component(
                                     line_color='black',
                                     line_width=1)
     
-    
-    # DEBUGGING!!
-    print("these are indices that are within range of the current purity value")
-    print(indices_of_purity_values_in_range)
-    print() 
+    print("this is absolute_rdata_df")
+    print(absolute_rdata_df)
+    # indexing issue!! absolute_rdata_df is indexed to 
+    # only retrieve the selected_rows_arrays sample
+
+    # might need to use the data_df and then index the columns that correspond 
+    # to the absolute_rdata_cols columns and the purity_range_indices rows
+    absolute_rdata_within_range_df = absolute_rdata_df.iloc[indices_of_purity_values_in_range]
+    # absolute_rdata_within_range_df = data_df.loc[indices_of_purity_values_in_range, absolute_rdata_cols]
+    print("this is absolute_rdata_within_range_df:")
+    print(absolute_rdata_within_range_df)
     
     # DEBUGGING!!!
-    precalled_sample_values_df = data_df.loc[(data_df[purity_col]*100 >= purity_range_lower) & (data_df[purity_col]*100 <= purity_range_upper)]
-    print("precalled sample values dataframe")
-    print(precalled_sample_values_df)
+    # precalled_sample_values_df = data_df.loc[(data_df[purity_col]*100 >= purity_range_lower) & (data_df[purity_col]*100 <= purity_range_upper)]
+    # print("precalled sample values dataframe")
+    # print(precalled_sample_values_df)
 
     return [
         slider_value,
         current_purity_value,
         purity_range_lower,
         purity_range_upper,
-        indices_of_purity_values_in_range,
-        absolute_rdata_df.to_dict('records'),
+        selected_row_array,
+        absolute_rdata_within_range_df.to_dict('records'),
         cnp_fig_with_lines, 
         mut_fig_with_lines,
         purity,
@@ -209,7 +221,7 @@ def gen_custom_precalled_absolute_component(
         0
     ]
 
-def gen_absolute_solutions_report_internal(
+def gen_precalled_solutions_report_internal(
     data: GenericData,
     data_id,
     slider_value,  # dash app parameters come first
@@ -294,7 +306,8 @@ def gen_absolute_solutions_report_internal(
     )
 
     output_data[SELECTED_ROW_INDEX] = selected_row_array
-    output_data[CURRENT_ABSOLUTE_SOLUTION_IDX] = selected_row_array[CURRENT_ABSOLUTE_SOLUTION_IDX] + 1 # 1 indexed
+    output_data[CURRENT_ABSOLUTE_SOLUTION_IDX] = selected_row_array[0] + 1 # 1 based indexing
+
     return output_data
     
 def gen_precalled_absolute_custom_solution_layout(step_size=None):
@@ -372,9 +385,8 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                                 tooltip={"placement": "right", "always_visible": True}
                             )
                         ], 
-                    )
-                ],
-                # displays the absolute solutions report
+                    ),
+                    # displays the absolute solutions report
                 html.Div(
                     children=[
                         html.H2('Absolute Solutions Table'),
@@ -414,8 +426,10 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                         dcc.Graph(id='mut-graph', figure={})
                     ]
                 )
-            )
-        ]
+            ],
+                  
+        )
+    ]
 
 # def filter_purity_values(data, purity_val_lower_range, purity_val_upper_range, 
 #                          current_purity_val, purity_val_col) -> GenericData:
