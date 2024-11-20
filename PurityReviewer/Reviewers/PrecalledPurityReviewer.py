@@ -108,10 +108,8 @@ class PrecalledPurityReviewer(ReviewerTemplate):
                        sample_info_cols: List[str],
                        acs_col,
                        purity_col,
-                       maf_col,
                        rdata_fn_col,
                        mut_fig_hover_data=None,
-                       csize=None,
                        custom_parse_absolute_soln=None,
                        step_size=None
                        ) -> ReviewDataApp:
@@ -126,18 +124,12 @@ class PrecalledPurityReviewer(ReviewerTemplate):
 
         purity_col: str
             Column name in data with the purity values
-
-        maf_col: str
-            Column name in data with path to maf file (mutation validator validated maf)
             
         rdata_fn_col: str
             Column name in data with LOCAL path to maf file. Should be predownloaded at set_review_data()
             
         mut_fig_hover_data: list
             List of column names to add to plotly hover_data in mutation figure
-            
-        csize: dict
-            Dictionary with chromosome sizes (see AppComponents.utils.CSIZE_DEFAULT for hg19)
             
         custom_parse_absolute_soln: function
             Custom absolute parser function (rdata_path -> data_df)
@@ -158,24 +150,11 @@ class PrecalledPurityReviewer(ReviewerTemplate):
             gen_absolute_precalled_custom_solution_component(step_size=step_size),
             rdata_fn_col=rdata_fn_col,
             acs_col=acs_col, 
-            maf_col=maf_col,
             mut_fig_hover_data=mut_fig_hover_data,
             custom_parse_absolute_soln=custom_parse_absolute_soln,
             purity_col=purity_col,
             step_size=step_size,
-            csize=CSIZE_DEFAULT,
         )
-
-        # mut_fig_hover_data = [] if mut_fig_hover_data is None else mut_fig_hover_data
-        # app.add_component(
-        #     gen_absolute_solutions_report_component(),
-        #     rdata_fn_col=rdata_fn_col,
-        #     acs_col=acs_col, 
-        #     maf_col=maf_col,
-        #     mut_fig_hover_data=mut_fig_hover_data,
-        #     csize=CSIZE_DEFAULT,
-        #     custom_parse_absolute_soln=custom_parse_absolute_soln,
-        # )
 
         app.add_component(
             gen_annotated_data_info_table_component(), 

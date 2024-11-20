@@ -32,6 +32,7 @@ absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
                        'SSNVs_likelihood']
 SELECTED_ROW_INDEX = 2
 CURRENT_ABSOLUTE_SOLUTION_IDX = -1
+ABSOLUTE_PURITY_VALUE_COLUMN_NAME = 'alpha'
 
 # Add a custom component: below, I add a component that allows you to manually set the range of purity values
 # NOTE: the purity calculated is tau, NOT tau_g. 
@@ -44,15 +45,14 @@ def gen_custom_precalled_absolute_component(
     manual_input_source,
     rdata_fn_col,
     acs_col, 
-    maf_col,
     mut_fig_hover_data,
     purity_col='PCA__ABSOLUTE__Cancer_DNA_fraction',
     step_size=None,
-    csize=None,
     custom_parse_absolute_soln=None
 ):
     """
     Callback function that updates copy number plots when a new sample/pair is selected 
+    or a new purity value range is indicated via slider or select all radio item
     
     Parameters
     ==========
@@ -65,20 +65,29 @@ def gen_custom_precalled_absolute_component(
     slider_value: List[float]
         List of length 2 where the 0-index entry is the current value of the 0-line, and the 1-index entry is the current value of the 1-line
 
-    purity: float
-        Current value for purity
-
+    selected_row_array: List
+        List of length 1 containing the currently selected ABSOLUTE solution from the ABSOLUTE solution table
+        
     manual_input_source: str ["Use slider", "Select All"]
         Which mode to set get the purity solution and replot the copy number profile with the corresponding comb
+
+    rdata_fn_col: str
+        Column in data.df corresponding to the LOCAL file path of the ABSOLUTE rdata
+
+    acs_col: str
+        Column name in data with path to seg file from alleliccapseg or other tsv with allelic copy ratio measurements.
+        
+    mut_fig_hover_data: List[str]
+        List of column names to add to plotly hover_data in mutation figure
         
     purity_col: str
         Column name in data with path to precalled purity values
 
-    step_size: float, default=0.05
+    step_size: int, default=5
         Degree of precision for the slider bar
     
-    csize: dict
-            Dictionary with chromosome sizes (see AppComponents.utils.CSIZE_DEFAULT for hg19)
+    custom_parse_absolute_soln: function
+        Custom absolute parser function (rdata_path -> data_df)
 
     Returns
     =======
@@ -87,22 +96,29 @@ def gen_custom_precalled_absolute_component(
 
     float
         Current/recalculated purity value
-        
-    float
-        Current/recalculated 0-line
-
-    float 
-        Current/recalculated 1-line
     
-    float
-        lower bound precalled purity value
-    
-    float
-        upper bound precalled purity value
+    List[int]
+        An array of length 1 indicating the selected row in the ABSOLUTE solution table
 
-    pd.DataFrame
-        all samples within the lower and upper bound of the precalled purity value
-    """
+    List[Dict]
+        ABSOLUTE solutions table converted into a list of records to be displayed in the dashboard 
+        with only purity values within a predefined range of the current purity value
+    
+    plotly.Figure
+        Copy number profile plot with the "comb" plotted corresponding to the currently selected solution
+
+    plotly.Figure
+        Mutation profile plot with the "comb" plotted corresponding to the currently selected solution
+
+    float
+        Purity corresponding to the currently selected solution. For new data, it is set to the first solution
+
+    float
+        Ploidy corresponding to the currently selected solution. For new data, it is set to the first solution
+
+    int
+        Index of the current ABSOLUTE solution. For new data, it is set to the first solution 0
+    """    
     # defaults to selecting all precalled purity values
     purity_range_lower = 0
     purity_range_upper = 100
@@ -149,8 +165,8 @@ def gen_custom_precalled_absolute_component(
     purity = 0
     ploidy = 0
 
-    absolute_rdata_within_range_df = absolute_rdata_df.loc[(absolute_rdata_df['alpha']*100 <= purity_range_upper) 
-                                                         & (absolute_rdata_df['alpha']*100 >= purity_range_lower)]
+    absolute_rdata_within_range_df = absolute_rdata_df.loc[(absolute_rdata_df[ABSOLUTE_PURITY_VALUE_COLUMN_NAME]*100 <= purity_range_upper) 
+                                                         & (absolute_rdata_df[ABSOLUTE_PURITY_VALUE_COLUMN_NAME]*100 >= purity_range_lower)]
     
     if absolute_rdata_within_range_df.shape[0] > 0:
         solution_data = absolute_rdata_within_range_df.iloc[selected_row_array[0]]
@@ -167,8 +183,6 @@ def gen_custom_precalled_absolute_component(
                                          line_width=1
                                         )
             i += 1
-
-        #mut_fig_with_lines.update_yaxes(range=[0, half_1_line * 2])
         
         purity = solution_data['alpha']
         ploidy = solution_data['tau_hat']
@@ -181,12 +195,7 @@ def gen_custom_precalled_absolute_component(
                                     line_dash="dash",
                                     line_color='black',
                                     line_width=1)
-    
-    # absolute dataframe is all possible absolute solutions for one pair, 
-    # for a pair you have a different absolute solution table
-    # 'alpha' column = purity value
-    
-    
+     
     return [
         slider_value,
         current_purity_value,
@@ -207,11 +216,9 @@ def gen_precalled_solutions_report_internal(
     manual_input_source,
     rdata_fn_col,
     acs_col, 
-    maf_col,
     mut_fig_hover_data,
     purity_col='PCA__ABSOLUTE__Cancer_DNA_fraction',
     step_size=None,
-    csize=None,
     custom_parse_absolute_soln=None
 ):
     """
@@ -234,23 +241,33 @@ def gen_precalled_solutions_report_internal(
     acs_col: str
         Column name in data with path to seg file from alleliccapseg or other tsv with allelic copy ratio measurements.
         
-    maf_col: str
-        Column name in data with path to maf file (mutation validator validated maf)
-        
     mut_fig_hover_data: List[str]
         List of column names to add to plotly hover_data in mutation figure
 
-    csize: dict
-            Dictionary with chromosome sizes (see AppComponents.utils.CSIZE_DEFAULT for hg19)
+    purity_col: str
+        Column name in data with path to precalled purity values
+
+    step_size: int, default=5
+        Degree of precision for the slider bar
             
     custom_parse_absolute_soln: function
         Custom absolute parser function (rdata_path -> data_df)
 
     Returns
     =======
-    List[Dict]
-        ABSOLUTE solutions table converted into a list of records to be displayed in the dashboard
+    List[float]
+        List of length 2 where the 0-index entry is the current/recalculated value of the 0-line, and the 1-index entry is the current value of the 1-line. Used to update the slider bar
 
+    float
+        Current/recalculated purity value
+    
+    List[int]
+        An array of length 1 indicating the selected row in the ABSOLUTE solution table
+
+    List[Dict]
+        ABSOLUTE solutions table converted into a list of records to be displayed in the dashboard 
+        with only purity values within a predefined range of the current purity value
+    
     plotly.Figure
         Copy number profile plot with the "comb" plotted corresponding to the currently selected solution
 
@@ -258,15 +275,13 @@ def gen_precalled_solutions_report_internal(
         Mutation profile plot with the "comb" plotted corresponding to the currently selected solution
 
     float
-        Purity corresponding to the currently selected solution
+        Purity corresponding to the currently selected solution. For new data, it is set to the first solution
 
     float
-        Ploidy corresponding to the currently selected solution
+        Ploidy corresponding to the currently selected solution. For new data, it is set to the first solution
 
-    List[int]
-        An array of length 1 indicating the selected row in the ABSOLUTE solution table
     int
-        Index of the current ABSOLUTE solution
+        Index of the current ABSOLUTE solution. For new data, it is set to the first solution 0
     """
     
     output_data = gen_custom_precalled_absolute_component(
@@ -277,9 +292,9 @@ def gen_precalled_solutions_report_internal(
         manual_input_source,
         rdata_fn_col,
         acs_col, 
-        maf_col,
-        mut_fig_hover_data,
-        csize=CSIZE_DEFAULT,
+        mut_fig_hover_data=mut_fig_hover_data,
+        step_size=step_size,
+        purity_col=purity_col,
         custom_parse_absolute_soln=custom_parse_absolute_soln
     )
 
