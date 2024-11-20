@@ -30,7 +30,7 @@ absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
                        'SCNA_likelihood', 
                        'Kar_likelihood', 
                        'SSNVs_likelihood']
-SELECTED_ROW_INDEX = 4
+SELECTED_ROW_INDEX = 2
 CURRENT_ABSOLUTE_SOLUTION_IDX = -1
 
 # Add a custom component: below, I add a component that allows you to manually set the range of purity values
@@ -111,8 +111,8 @@ def gen_custom_precalled_absolute_component(
         step_size = 5
 
     data_df = data.df.copy() # do not want to modify the original pairs dataframe 
-    data_sample = data_df.loc[data_id] # gets a specific row of sample data
-    current_purity_value = data_sample[purity_col] # gets the current purity value
+    data_sample = data_df.loc[data_id] # gets a specific row of paired sample data
+    current_purity_value = data_sample[purity_col] # gets the current tumor sample purity value
 
     # checks if you want to limit the number of samples displayed of purity values
     if manual_input_source == "Use slider":
@@ -130,33 +130,16 @@ def gen_custom_precalled_absolute_component(
         if purity_range_upper > 100:
             purity_range_upper = 100
         
-    # FOUND THE ERROR!!
-        # there are more sample values in the data_df dataframe then the absolute_rdata_df!!!!
-        # i.e. len(purity_values) > len(absolute_rdata_df) 
-    purity_values = data_df[purity_col].copy() # gets the purity values
-    purity_values = purity_values.reset_index(drop=True) # creates numerical indices and drops original index
-    print("length of purity_values: ", len(purity_values))
-    # gets indices of samples with purity values within range
-    indices_of_purity_values_in_range = np.where((purity_values*100 >= purity_range_lower) & (purity_values*100 <= purity_range_upper))[0] # makes sure you get the array of indices
-
-    # DEBUGGING!!
-    print("these are indices that are within range of the current purity value")
-    print(indices_of_purity_values_in_range)
-    print() 
-    # print(data_df[purity_col].iloc[indices_of_purity_values_in_range])
-
     # from absolute solutions report component gen_absolute_solutions_report_new_data
     parse_absolute_soln_func = custom_parse_absolute_soln if custom_parse_absolute_soln is not None else parse_absolute_soln
     try:
         absolute_rdata_df,maf,maf_annot_list = parse_absolute_soln_func(data_sample[rdata_fn_col])
     except Exception as e:
         print(e)
-        print("except error: and initialize empty dataframes")
+        print("excepted error and initialized empty dataframes")
         absolute_rdata_df,maf,maf_annot_list = pd.DataFrame()
 
     absolute_rdata_df = absolute_rdata_df.round(2)
-    print("this is the length of parse_absolute_soln: ", len(absolute_rdata_df))
-    print("these are the indices for absolute_rdata_df: ", list(absolute_rdata_df.index))
     
     cnp_fig = gen_cnp_figure(data_sample[acs_col], csize=CSIZE_DEFAULT)
 
@@ -165,9 +148,12 @@ def gen_custom_precalled_absolute_component(
     
     purity = 0
     ploidy = 0
+
+    absolute_rdata_within_range_df = absolute_rdata_df.loc[(absolute_rdata_df['alpha']*100 <= purity_range_upper) 
+                                                         & (absolute_rdata_df['alpha']*100 >= purity_range_lower)]
     
-    if absolute_rdata_df.shape[0] > 0:
-        solution_data = absolute_rdata_df.iloc[selected_row_array[0]]
+    if absolute_rdata_within_range_df.shape[0] > 0:
+        solution_data = absolute_rdata_within_range_df.iloc[selected_row_array[0]]
         maf_soln = pd.concat([maf, maf_annot_list[selected_row_array[0]]],axis=1)
         maf_soln = maf_soln[maf_soln['Variant_Type']=='SNP']
 
@@ -196,26 +182,14 @@ def gen_custom_precalled_absolute_component(
                                     line_color='black',
                                     line_width=1)
     
-    # removes the indices that are out of range error, since len(purity_values) > len(absolute_rdata_df)
-    indices_within_bound = np.where(indices_of_purity_values_in_range <= np.max(absolute_rdata_df.index), True, False)
-    indices_of_purity_values_in_range = indices_of_purity_values_in_range[indices_within_bound]
-
-    absolute_rdata_within_range_df = absolute_rdata_df.iloc[indices_of_purity_values_in_range]
-
-    for col_nm in absolute_rdata_cols:
-    # absolute_rdata_within_range_df = data_df.loc[indices_of_purity_values_in_range, absolute_rdata_cols]
-        print(f"checking if column -> {col_nm} is in data_df: {col_nm in data_df.columns}")
+    # absolute dataframe is all possible absolute solutions for one pair, 
+    # for a pair you have a different absolute solution table
+    # 'alpha' column = purity value
     
-    # DEBUGGING!!!
-    # precalled_sample_values_df = data_df.loc[(data_df[purity_col]*100 >= purity_range_lower) & (data_df[purity_col]*100 <= purity_range_upper)]
-    # print("precalled sample values dataframe")
-    # print(precalled_sample_values_df)
-
+    
     return [
         slider_value,
         current_purity_value,
-        purity_range_lower,
-        purity_range_upper,
         selected_row_array,
         absolute_rdata_within_range_df.to_dict('records'),
         cnp_fig_with_lines, 
@@ -310,7 +284,7 @@ def gen_precalled_solutions_report_internal(
     )
 
     output_data[SELECTED_ROW_INDEX] = selected_row_array
-    output_data[CURRENT_ABSOLUTE_SOLUTION_IDX] = selected_row_array[0] + 1 # 1 based indexing
+    output_data[CURRENT_ABSOLUTE_SOLUTION_IDX] = selected_row_array[0] + 1 # 1 based indexing for copy number profile
 
     return output_data
     
@@ -355,26 +329,7 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                                 dbc.Label("Current Purity Value: "),
                                 html.Label(children="", id="current-purity-value"), # initialize label to empty string
                             ])
-                        ]),
-
-                    # displays the lower bound for the purity values that will be displayed
-                    dbc.Row([
-                        html.Div(
-                            [
-                                dbc.Label("Lower bound range of Purity Values to display: "),
-                                html.Label(children="", id="lower-bound-of-purity-values"), # initialize label to empty string
-                            ])
-                        ]),
-
-                    # displays the upper bound for the purity values that will be displayed
-                    dbc.Row([
-                        html.Div(
-                            [
-                                dbc.Label("Upper bound range of Purity Values to display: "),
-                                html.Label(children="", id="upper-bound-of-purity-values"), # initialize label to empty string
-                            ])
-                        ]),
-
+                        ]),                
                     dbc.Row(
                         [
                             # creating a horizontal slider for selecting a range of purity values
@@ -435,35 +390,6 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
         )
     ]
 
-# def filter_purity_values(data, purity_val_lower_range, purity_val_upper_range, 
-#                          current_purity_val, purity_val_col) -> GenericData:
-#     """
-#     Only returns the purity values within a specific range
-
-#     Parameters:
-#         data: GenericData, 
-#         purity_value_lower_range:
-#         purity_value_upper_range:
-#         purity_val_col: str, name of the column that has the purity value
-
-#     Return:
-#         returns a generic data object with only rows that contained purity values 
-#     in a specific range
-#     """
-#     data = data.copy()
-
-#     data_df = data.df
-#     annotation_df = data.annot_df
-#     purity_val_range = purity_val_upper_range - purity_val_lower_range
-
-#     filter_row_idx = pd.where((data_df[purity_val_col] >= current_purity_val - purity_val_range) and (data_df[purity_val_col] <= current_purity_val + purity_val_range))
-
-#     # only gets the purity values within a specific range of the current purity value
-#     data.df = data_df.iloc[filter_row_idx]
-#     data.annot_df = annotation_df.iloc[filter_row_idx]
-
-#     return data
-
 def gen_absolute_precalled_custom_solution_component(step_size=None):
     """
     Generates an AppComponent defining the interactive elements for setting a manual purity/ploidy solution using a copy number profile
@@ -478,7 +404,7 @@ def gen_absolute_precalled_custom_solution_component(step_size=None):
         'Precalled Purity', # table title
         layout= gen_precalled_absolute_custom_solution_layout(step_size=step_size), # html layout of app component
         new_data_callback=gen_custom_precalled_absolute_component,
-        internal_callback=gen_custom_precalled_absolute_component,
+        internal_callback=gen_precalled_solutions_report_internal,
         callback_input=[
             Input('custom-precalled-slider', 'value'),
             Input('absolute-rdata-select-table', 'selected_rows'),
@@ -487,8 +413,6 @@ def gen_absolute_precalled_custom_solution_component(step_size=None):
         callback_output=[
             Output('custom-precalled-slider', 'value'),
             Output('current-purity-value', 'children'),
-            Output('lower-bound-of-purity-values', 'children'),
-            Output('upper-bound-of-purity-values', 'children'),
             Output('absolute-rdata-select-table', 'selected_rows'),
             Output('absolute-rdata-select-table', 'data'),
             Output('cnp-graph', 'figure'),
