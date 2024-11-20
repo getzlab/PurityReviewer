@@ -130,9 +130,12 @@ def gen_custom_precalled_absolute_component(
         if purity_range_upper > 100:
             purity_range_upper = 100
         
+    # FOUND THE ERROR!!
+        # there are more sample values in the data_df dataframe then the absolute_rdata_df!!!!
+        # i.e. len(purity_values) > len(absolute_rdata_df) 
     purity_values = data_df[purity_col].copy() # gets the purity values
     purity_values = purity_values.reset_index(drop=True) # creates numerical indices and drops original index
-    
+    print("length of purity_values: ", len(purity_values))
     # gets indices of samples with purity values within range
     indices_of_purity_values_in_range = np.where((purity_values*100 >= purity_range_lower) & (purity_values*100 <= purity_range_upper))[0] # makes sure you get the array of indices
 
@@ -140,7 +143,7 @@ def gen_custom_precalled_absolute_component(
     print("these are indices that are within range of the current purity value")
     print(indices_of_purity_values_in_range)
     print() 
-    print(data_df[purity_col].iloc[indices_of_purity_values_in_range])
+    # print(data_df[purity_col].iloc[indices_of_purity_values_in_range])
 
     # from absolute solutions report component gen_absolute_solutions_report_new_data
     parse_absolute_soln_func = custom_parse_absolute_soln if custom_parse_absolute_soln is not None else parse_absolute_soln
@@ -148,9 +151,12 @@ def gen_custom_precalled_absolute_component(
         absolute_rdata_df,maf,maf_annot_list = parse_absolute_soln_func(data_sample[rdata_fn_col])
     except Exception as e:
         print(e)
+        print("except error: and initialize empty dataframes")
         absolute_rdata_df,maf,maf_annot_list = pd.DataFrame()
 
     absolute_rdata_df = absolute_rdata_df.round(2)
+    print("this is the length of parse_absolute_soln: ", len(absolute_rdata_df))
+    print("these are the indices for absolute_rdata_df: ", list(absolute_rdata_df.index))
     
     cnp_fig = gen_cnp_figure(data_sample[acs_col], csize=CSIZE_DEFAULT)
 
@@ -190,17 +196,15 @@ def gen_custom_precalled_absolute_component(
                                     line_color='black',
                                     line_width=1)
     
-    print("this is absolute_rdata_df")
-    print(absolute_rdata_df)
-    # indexing issue!! absolute_rdata_df is indexed to 
-    # only retrieve the selected_rows_arrays sample
+    # removes the indices that are out of range error, since len(purity_values) > len(absolute_rdata_df)
+    indices_within_bound = np.where(indices_of_purity_values_in_range <= np.max(absolute_rdata_df.index), True, False)
+    indices_of_purity_values_in_range = indices_of_purity_values_in_range[indices_within_bound]
 
-    # might need to use the data_df and then index the columns that correspond 
-    # to the absolute_rdata_cols columns and the purity_range_indices rows
     absolute_rdata_within_range_df = absolute_rdata_df.iloc[indices_of_purity_values_in_range]
+
+    for col_nm in absolute_rdata_cols:
     # absolute_rdata_within_range_df = data_df.loc[indices_of_purity_values_in_range, absolute_rdata_cols]
-    print("this is absolute_rdata_within_range_df:")
-    print(absolute_rdata_within_range_df)
+        print(f"checking if column -> {col_nm} is in data_df: {col_nm in data_df.columns}")
     
     # DEBUGGING!!!
     # precalled_sample_values_df = data_df.loc[(data_df[purity_col]*100 >= purity_range_lower) & (data_df[purity_col]*100 <= purity_range_upper)]

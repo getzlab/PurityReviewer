@@ -257,8 +257,7 @@ def gen_absolute_solutions_report_layout():
                    {"name": i,
                     "id": i} for i in absolute_rdata_cols
                ],
-               data=pd.DataFrame(columns=absolute_rdata_cols).to_dict(
-                   'records'),
+               data=pd.DataFrame(columns=absolute_rdata_cols).to_dict('records'),
                editable=False,
                filter_action="native",
                sort_action="native",
