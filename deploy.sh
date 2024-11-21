@@ -23,7 +23,7 @@ fi
 VERSION=${BRANCH}v${NCOMMIT}
 
 # build method docker
-docker build -t getzlab/$METHOD_NAME:${VERSION} ${EXTRA_DOCKER_BUILD_ARGS} ${DOCKER_BUILD_PATH}
+docker build --platform=linux/amd64 -t getzlab/$METHOD_NAME:${VERSION} ${EXTRA_DOCKER_BUILD_ARGS} ${DOCKER_BUILD_PATH}
 
 # push method docker
 docker tag getzlab/$METHOD_NAME:${VERSION} gcr.io/broad-getzlab-workflows/$METHOD_NAME:${VERSION}
