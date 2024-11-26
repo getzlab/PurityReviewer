@@ -1,5 +1,7 @@
 """
-Displays a allelic copy ratio profile with the option to set the 0 and 1 line (via slider or input value) corresponding to an integer assignment to copy number peaks. Automatically calculates the purity given the corresponding solution.
+Given a precalled purity sample value displays the absolute solutions within a specific 
+range of the current precalled purity value. The default range is 5% above and below 
+the current precalled purity value. Can also choose to see all absolute solutions.
 """
 from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output
@@ -22,7 +24,7 @@ from cnv_suite import calc_cn_levels
 import pandas as pd
 import numpy as np
 
-MANUAL_INPUT_SOURCE = ["Use slider", "Select All"]
+PRECALLED_SLIDER_VALUES = ["Use slider", "Select All"]
 absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
                        'sigma_H', 
                        'theta_Q', 
@@ -33,21 +35,19 @@ absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
 SELECTED_ROW_INDEX = 2
 CURRENT_ABSOLUTE_SOLUTION_IDX = -1
 ABSOLUTE_PURITY_VALUE_COLUMN_NAME = 'alpha'
+PRECALLED_PURITY_COLUMN_NAME = 'precalled_purity_values'
 
-# Add a custom component: below, I add a component that allows you to manually set the range of purity values
 # NOTE: the purity calculated is tau, NOT tau_g. 
 # Use the called purity and tau as inputs to absolute_segforcecall to get tau_g (tau_hat)
-def gen_custom_precalled_absolute_component(
+def gen_absolute_solutions_report_range_of_precalled_component(
     data: GenericData,
     data_id,
     slider_value,  # dash app parameters come first
     selected_row_array, # dash app parameters come first
-    manual_input_source,
+    precalled_slider_value,
     rdata_fn_col,
     acs_col, 
     mut_fig_hover_data,
-    purity_col='PCA__ABSOLUTE__Cancer_DNA_fraction',
-    step_size=None,
     custom_parse_absolute_soln=None
 ):
     """
@@ -62,14 +62,16 @@ def gen_custom_precalled_absolute_component(
     data_id: str
         Name of the object being reviewed
         
-    slider_value: List[float]
-        List of length 2 where the 0-index entry is the current value of the 0-line, and the 1-index entry is the current value of the 1-line
+    slider_value: int
+        the value for the range of purity values to view centered around the precalled purity value
 
-    selected_row_array: List
+    selected_row_array: List[int]
         List of length 1 containing the currently selected ABSOLUTE solution from the ABSOLUTE solution table
         
-    manual_input_source: str ["Use slider", "Select All"]
-        Which mode to set get the purity solution and replot the copy number profile with the corresponding comb
+    precalled_slider_value: str ["Use slider", "Select All"]
+        Which mode the user wants to use for filtering the absolute solutions that are viewed, based 
+        on the precalled purity value; either looking at all the absolute solutions or looking 
+        absolute solutions within specific range of precalled purity value  
 
     rdata_fn_col: str
         Column in data.df corresponding to the LOCAL file path of the ABSOLUTE rdata
@@ -79,30 +81,24 @@ def gen_custom_precalled_absolute_component(
         
     mut_fig_hover_data: List[str]
         List of column names to add to plotly hover_data in mutation figure
-        
-    purity_col: str
-        Column name in data with path to precalled purity values
-
-    step_size: int, default=5
-        Degree of precision for the slider bar
     
     custom_parse_absolute_soln: function
         Custom absolute parser function (rdata_path -> data_df)
 
     Returns
     =======
-    List[float]
-        List of length 2 where the 0-index entry is the current/recalculated value of the 0-line, and the 1-index entry is the current value of the 1-line. Used to update the slider bar
+    int
+        the value for the range of purity values to view centered around the precalled purity value
 
     float
-        Current/recalculated purity value
+        precalled purity value
     
     List[int]
         An array of length 1 indicating the selected row in the ABSOLUTE solution table
 
     List[Dict]
         ABSOLUTE solutions table converted into a list of records to be displayed in the dashboard 
-        with only purity values within a predefined range of the current purity value
+        with only purity values within a predefined range of the precalled purity value
     
     plotly.Figure
         Copy number profile plot with the "comb" plotted corresponding to the currently selected solution
@@ -118,25 +114,21 @@ def gen_custom_precalled_absolute_component(
 
     int
         Index of the current ABSOLUTE solution. For new data, it is set to the first solution 0
-    """    
+    """  
     # defaults to selecting all precalled purity values
     purity_range_lower = 0
     purity_range_upper = 100
 
-    if step_size is None:
-        step_size = 5
-
     data_df = data.df.copy() # do not want to modify the original pairs dataframe 
-    data_sample = data_df.loc[data_id] # gets a specific row of paired sample data
-    current_purity_value = data_sample[purity_col] # gets the current tumor sample purity value
+    pairs_data_row = data_df.loc[data_id] # gets a specific row of paired sample data
+    precalled_purity_value = pairs_data_row[PRECALLED_PURITY_COLUMN_NAME] # gets the precalled purity value from tumor sample
 
-    # checks if you want to limit the number of samples displayed of purity values
-    if manual_input_source == "Use slider":
+    # checks if you want to display less absolute solutions based on its purity value 
+    if precalled_slider_value == "Use slider":
     
         # gets the lower and upper range of purity values
-        # accounts for the floating point precision issues
-        purity_range_lower = current_purity_value*100 - slider_value  
-        purity_range_upper = current_purity_value*100 + slider_value
+        purity_range_lower = precalled_purity_value*100 - slider_value  
+        purity_range_upper = precalled_purity_value*100 + slider_value
 
         # checks to make sure you dont get negative purity values
         if purity_range_lower < 0:
@@ -149,7 +141,7 @@ def gen_custom_precalled_absolute_component(
     # from absolute solutions report component gen_absolute_solutions_report_new_data
     parse_absolute_soln_func = custom_parse_absolute_soln if custom_parse_absolute_soln is not None else parse_absolute_soln
     try:
-        absolute_rdata_df,maf,maf_annot_list = parse_absolute_soln_func(data_sample[rdata_fn_col])
+        absolute_rdata_df,maf,maf_annot_list = parse_absolute_soln_func(pairs_data_row[rdata_fn_col])
     except Exception as e:
         print(e)
         print("excepted error and initialized empty dataframes")
@@ -157,7 +149,7 @@ def gen_custom_precalled_absolute_component(
 
     absolute_rdata_df = absolute_rdata_df.round(2)
     
-    cnp_fig = gen_cnp_figure(data_sample[acs_col], csize=CSIZE_DEFAULT)
+    cnp_fig = gen_cnp_figure(pairs_data_row[acs_col], csize=CSIZE_DEFAULT)
 
     # add 1 and 0 lines
     cnp_fig_with_lines = go.Figure(cnp_fig)
@@ -195,30 +187,28 @@ def gen_custom_precalled_absolute_component(
                                     line_dash="dash",
                                     line_color='black',
                                     line_width=1)
-     
+    
     return [
         slider_value,
-        current_purity_value,
+        precalled_purity_value,
         selected_row_array,
         absolute_rdata_within_range_df.to_dict('records'),
         cnp_fig_with_lines, 
         mut_fig_with_lines,
         purity,
         ploidy, 
-        0
+        selected_row_array[0] + 1
     ]
 
-def gen_precalled_solutions_report_internal(
+def gen_absolute_precalled_solutions_report_internal(
     data: GenericData,
     data_id,
     slider_value,  # dash app parameters come first
     selected_row_array, # dash app parameters come first
-    manual_input_source,
+    precalled_slider_value,
     rdata_fn_col,
     acs_col, 
     mut_fig_hover_data,
-    purity_col='PCA__ABSOLUTE__Cancer_DNA_fraction',
-    step_size=None,
     custom_parse_absolute_soln=None
 ):
     """
@@ -231,10 +221,18 @@ def gen_precalled_solutions_report_internal(
         
     data_id: str
         Name of the object being reviewed
+
+    slider_value: int
+        the value for the range of purity values to view centered around the precalled purity value
         
     selected_row_array: List
         List of length 1 containing the currently selected ABSOLUTE solution from the ABSOLUTE solution table
         
+    precalled_slider_value: str ["Use slider", "Select All"]
+        Which mode the user wants to use for filtering the absolute solutions that are viewed, based 
+        on the precalled purity value; either looking at all the absolute solutions or looking 
+        absolute solutions within specific range of precalled purity value 
+
     rdata_fn_col: str
         Column in data.df corresponding to the LOCAL file path of the ABSOLUTE rdata
         
@@ -243,30 +241,24 @@ def gen_precalled_solutions_report_internal(
         
     mut_fig_hover_data: List[str]
         List of column names to add to plotly hover_data in mutation figure
-
-    purity_col: str
-        Column name in data with path to precalled purity values
-
-    step_size: int, default=5
-        Degree of precision for the slider bar
             
     custom_parse_absolute_soln: function
         Custom absolute parser function (rdata_path -> data_df)
 
     Returns
     =======
-    List[float]
-        List of length 2 where the 0-index entry is the current/recalculated value of the 0-line, and the 1-index entry is the current value of the 1-line. Used to update the slider bar
+    int
+        the value for the range of purity values to view centered around the precalled purity value
 
     float
-        Current/recalculated purity value
+        precalled purity value
     
     List[int]
         An array of length 1 indicating the selected row in the ABSOLUTE solution table
 
     List[Dict]
         ABSOLUTE solutions table converted into a list of records to be displayed in the dashboard 
-        with only purity values within a predefined range of the current purity value
+        with only purity values within a predefined range of the precalled purity value
     
     plotly.Figure
         Copy number profile plot with the "comb" plotted corresponding to the currently selected solution
@@ -283,18 +275,15 @@ def gen_precalled_solutions_report_internal(
     int
         Index of the current ABSOLUTE solution. For new data, it is set to the first solution 0
     """
-    
-    output_data = gen_custom_precalled_absolute_component(
+    output_data = gen_absolute_solutions_report_range_of_precalled_component(
         data,
         data_id,
         slider_value,  # dash app parameters come first
         selected_row_array, # dash app parameters come first
-        manual_input_source,
+        precalled_slider_value,
         rdata_fn_col,
         acs_col, 
         mut_fig_hover_data=mut_fig_hover_data,
-        step_size=step_size,
-        purity_col=purity_col,
         custom_parse_absolute_soln=custom_parse_absolute_soln
     )
 
@@ -303,17 +292,19 @@ def gen_precalled_solutions_report_internal(
 
     return output_data
     
-def gen_precalled_absolute_custom_solution_layout(step_size=None):
+def gen_absolute_precalled_solution_report_layout():
     """
-    Generates the layout of the custom purity solutions component in the dashboard
+    Generates the layout of the component in the dashboard corresponding to the report of the 
+    ABSOLUTE solutions within a user-defined range of the precalled purity value
 
     Returns
     =======
     dash.html
-        a plotly dash layout with a copy number plot and multiple options to set the purity and ploidy or set the 0 and 1 line
+        a plotly dash layout with a slider to define the range of purity values, Table with 
+        selectable rows for the ABSOLUTE solutions, a copy number profile, and mutation profile
     """
-    if step_size is None:
-        step_size = 5
+    step_size = 5
+
     return [
             # displays the interactive component to filter the samples displays based on their purity values
             html.Div(
@@ -328,7 +319,7 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                                         {
                                             "label": v, 
                                             "value": v
-                                        } for v in MANUAL_INPUT_SOURCE
+                                        } for v in PRECALLED_SLIDER_VALUES
                                     ],
                                     value="Use slider",
                                     id="precalled-selection-type-radioitems",
@@ -355,7 +346,7 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
                                 max=50.0,
                                 step=step_size,
                                 value= 5, # initial value on slider 
-                                marks={i: f'{i}' for i in range(0, 50, 5)}, 
+                                marks={i: f'{i}' for i in range(0, 51, 5)}, 
                                 tooltip={"placement": "right", "always_visible": True}
                             )
                         ], 
@@ -405,21 +396,23 @@ def gen_precalled_absolute_custom_solution_layout(step_size=None):
         )
     ]
 
-def gen_absolute_precalled_custom_solution_component(step_size=None):
+def gen_absolute_precalled_solutions_report_component():
     """
-    Generates an AppComponent defining the interactive elements for setting a manual purity/ploidy solution using a copy number profile
-
+    Generates an AppComponent defining the interactive elements for viewing ABSOLUTE solutions 
+    with purity values within a user-defined range of the precalled purity value
+    
     Returns
     =======
     AnnoMate.AppComponent
-        AppComponent defining the interactive elements for setting a manual purity/ploidy solution using a copy number profile
+        AppComponent defining the interactive elements for viewing ABSOLUTE solutions
+        with purity values within a user-defined range of the precalled purity value
     """
     
     return AppComponent(
         'Precalled Purity', # table title
-        layout= gen_precalled_absolute_custom_solution_layout(step_size=step_size), # html layout of app component
-        new_data_callback=gen_custom_precalled_absolute_component,
-        internal_callback=gen_precalled_solutions_report_internal,
+        layout= gen_absolute_precalled_solution_report_layout(), # html layout of app component
+        new_data_callback=gen_absolute_solutions_report_range_of_precalled_component,
+        internal_callback=gen_absolute_precalled_solutions_report_internal,
         callback_input=[
             Input('custom-precalled-slider', 'value'),
             Input('absolute-rdata-select-table', 'selected_rows'),

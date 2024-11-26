@@ -1,5 +1,11 @@
 """
-A reviewer dashboard that displays generic sample data and a allelic copy ratio profile for a given sample. The allelic copy ratio profile is linked to a table with the solutions from ABSOLUTE (Carter, 2014), where you can select a row and the corresponding ABSOLUTE "comb" solution will be plotted over the allelic copy ratio plot.
+A reviewer dashboard that displays generic sample data and a allelic copy ratio profile 
+for a given sample. The allelic copy ratio profile is linked to a table with the solutions 
+from ABSOLUTE (Carter, 2014), where you can select a row and the corresponding ABSOLUTE "comb" 
+solution will be plotted over the allelic copy ratio plot. You can filter the absolute solutions
+displayed, by using a slider to select the range of solutions shown. If the absolute solution's 
+purity value is within range of the a precalled purity value then the absolute solution is 
+displayed in the absolute solution report. 
 """
 from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
@@ -31,26 +37,18 @@ import sys
 
 from PurityReviewer.AppComponents.AbsoluteSolutionsReportComponent import gen_absolute_solutions_report_component
 from PurityReviewer.AppComponents.AbsoluteCustomSolutionComponent import gen_absolute_custom_solution_component
-from PurityReviewer.AppComponents.AbsolutePrecalledSolutionComponent import gen_absolute_precalled_custom_solution_component
+from PurityReviewer.AppComponents.AbsolutePrecalledSolutionComponent import gen_absolute_precalled_solutions_report_component
 
 from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, parse_absolute_soln, validate_purity, validate_ploidy, CSIZE_DEFAULT
 
 
 class PrecalledPurityReviewer(ReviewerTemplate):
     """
-    Dashboard to created precalled purity values to review and select ABSOLUTE solutions within 5% of the current purity value
+    Dashboard to allow user to view absolute solutions within a user-defined range of the 
+    precalled purity value; default range is +/- 5% of the precalled purity value
 
     Carter, S., Cibulskis, K., Helman, E. et al. Absolute quantification of somatic DNA alterations in human cancer. Nat Biotechnol 30, 413–421 (2012). https://doi.org/10.1038/nbt.2203
     """
-    # def __init__(self):
-    #     self.start_purity_range = 0
-    #     self.end_purity_range = 100
-    #     self.precalled_purity_list = []
-        # might make this a dictionary with key => purity value, value => data_id #
-            # collision issue, not sure if the purity values are unique??
-            # would it be helpful to have the data_id # with the corresponding purity value??
-        # self.precalled_purity_list = dict()
-
     def gen_data(self,
                  description: str,
                  df: pd.DataFrame,
@@ -59,27 +57,9 @@ class PrecalledPurityReviewer(ReviewerTemplate):
                  annot_col_config_dict: Dict = None,
                  history_df: pd.DataFrame = None,
                  ) -> GenericData:
-        
-        # Serves as the 
+        """
+        Generate data for PrecalledPurityReviewer object
 
-        # create a template notebook on how to use PrecalledPurityReviewer
-
-        # this currently only takes in pairs data -> contains absolute data for WGS
-        # in purity reviewer notebook there is a print out of sample -> precalled purities
-        # need both the sample and pairs table
-            # need to merge the pairs table with sample table (sample id and precalled purity value)
-        # pair -> tumor -> 1 sample (purity will only be associated with tumor samples)
-        #      -> normal -> 2 samples
-        # need to map the tumor sample id to the sample id in sample table
-
-        # in the backend just merge the tables together (create a merge function, once data is passed in)
-        # add another column in pairs_df with precalled purity values
-            # each pair_id should have an associated 
-
-        # use precalled-purity column 
-        # precalled purities are not a unique identifier
-
-        """Generate data for PurityReviewer object
         Parameters
         ==========
         df: pd.DataFrame
@@ -91,11 +71,7 @@ class PrecalledPurityReviewer(ReviewerTemplate):
         GenericData
             Data object that contains only one dataframe
         """
-
-        # create a function that merges the two tables in together 
-        # and then reassign the df dataframe to the merged dataframe
         pandas2ri.activate()
-        # df = self.merge_pairs_sample_df(pairs_df, sample_df)
     
         return GenericData(index=index,
                            description=description,
@@ -107,7 +83,6 @@ class PrecalledPurityReviewer(ReviewerTemplate):
     def gen_review_app(self,
                        sample_info_cols: List[str],
                        acs_col,
-                       purity_col,
                        rdata_fn_col,
                        mut_fig_hover_data=None,
                        custom_parse_absolute_soln=None,
@@ -122,9 +97,6 @@ class PrecalledPurityReviewer(ReviewerTemplate):
         acs_col: str
             Column name in data with path to seg file from alleliccapseg or other tsv with allelic copy ratio measurements
 
-        purity_col: str
-            Column name in data with the purity values
-            
         rdata_fn_col: str
             Column name in data with LOCAL path to maf file. Should be predownloaded at set_review_data()
             
@@ -147,15 +119,14 @@ class PrecalledPurityReviewer(ReviewerTemplate):
         # add component that gets purity values within a specific range
         mut_fig_hover_data = [] if mut_fig_hover_data is None else mut_fig_hover_data
         app.add_component(
-            gen_absolute_precalled_custom_solution_component(step_size=step_size),
+            gen_absolute_precalled_solutions_report_component(),
             rdata_fn_col=rdata_fn_col,
             acs_col=acs_col, 
             mut_fig_hover_data=mut_fig_hover_data,
             custom_parse_absolute_soln=custom_parse_absolute_soln,
-            purity_col=purity_col,
-            step_size=step_size,
         )
 
+        # add component that displays a table with the annotated data info 
         app.add_component(
             gen_annotated_data_info_table_component(), 
             cols=sample_info_cols, 
@@ -163,6 +134,7 @@ class PrecalledPurityReviewer(ReviewerTemplate):
             link_display_name=None
         )
 
+        # add component that allows the user to create manual custom absolute solutions
         app.add_component(
             gen_absolute_custom_solution_component(step_size=step_size),
             acs_col=acs_col,

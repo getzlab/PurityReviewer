@@ -240,7 +240,7 @@ def gen_absolute_solutions_report_layout():
     Returns
     =======
     dash.html
-        a plotly dash layout with a Tablwith selectable rows for the ABSOLUTE solutions, a copy number profile, and mutation profile
+        a plotly dash layout with a Table with selectable rows for the ABSOLUTE solutions, a copy number profile, and mutation profile
     """
 
     # if data_to_display is None:
