@@ -448,20 +448,34 @@ def download_rdata(rdata_fn_s, rdata_dir, force_download=False):
 
     return pd.Series(local_rdata_dict)
 
-def merge_pairs_precalled_purities_df(pairs_df, precalled_purity_df):
+def add_precalled_purities_to_pairs(pairs_df, sample_df, precalled_purity_col_nm='PCA__ABSOLUTE__Cancer_DNA_fraction'):
     """
-    Merges the pairs dataframe with the precalled purity dataframe based on the tumor sample id
+    Makes a new dataframe with the precalled purity values from the sample_df added to the columns from the pairs_df
 
-    pairs_df: df, dataframe of the pairs sample data
+    Parameters
+    ==========
+    pairs_df: pd.DataFrame, 
+        dataframe of the pairs sample data
 
-    precalled_purity_df: df, dataframe of the precalled purity values with sample id
+    sample_df: pd.DataFrame, 
+        dataframe of the sample data
+    
+    precalled_purity_col_nm: str,
+        name of the column with the precalled purity values in the sample_df dataframe
 
-    Returns:
+    Returns
+    =======
         Merged dataframe with the precalled purity values added as a new column to the original pairs_df dataframe
     """
 
     pairs_df = pairs_df.copy()
-    precalled_purity_df = precalled_purity_df.copy()
+    sample_df = sample_df.copy()
 
-    return pairs_df.merge(precalled_purity_df, how="inner", left_on="case_sample", right_on="sample_id").set_index('tumor_submitter_id')
+    precalled_purities_df = sample_df[[precalled_purity_col_nm]]
+    precalled_purities_df = precalled_purities_df[precalled_purities_df[precalled_purity_col_nm].notna()]
+
+    pairs_with_precalled_purity_df = pairs_df.merge(precalled_purities_df, how="inner", left_on="case_sample", right_on="sample_id")
+    pairs_with_precalled_purity_df = pairs_with_precalled_purity_df.rename(columns={precalled_purity_col_nm:'precalled_purity_values'})
+
+    return pairs_with_precalled_purity_df
     
