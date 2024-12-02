@@ -1,9 +1,8 @@
 *.idea/*
 *.egg-info*
-<<<<<<< HEAD
-*__pychache__*
+*__pycache__*
 */data/*
-=======
-__pychache__
-.ipynb_checkpoints
->>>>>>> fd8e1b101683e014a3cc1474b694fb4c32ff2ceb
+*.DS_Store*
+*local_rdata*
+*SimulatedTumorData*
+purityEnv/
