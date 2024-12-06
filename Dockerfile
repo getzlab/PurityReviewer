@@ -14,7 +14,7 @@ RUN pip -V \
 
 # Install Purity Reviewer
 RUN git clone https://github.com/getzlab/PurityReviewer.git && \
-    pip install ./PurityReviewer && \
-    rm -rf /build/PurityReviewer
+    cd PurityReviewer && \
+    pip install -e . && \
 
 USER $USER
