@@ -478,4 +478,3 @@ def add_precalled_purities_to_pairs(pairs_df, sample_df, precalled_purity_col_nm
     pairs_with_precalled_purity_df = pairs_with_precalled_purity_df.rename(columns={precalled_purity_col_nm:'precalled_purity_values'})
 
     return pairs_with_precalled_purity_df
-    

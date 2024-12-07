@@ -32,6 +32,7 @@ absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
                        'SCNA_likelihood', 
                        'Kar_likelihood', 
                        'SSNVs_likelihood']
+PRECALLED_SLIDER_VALUE_INDEX = 0
 SELECTED_ROW_INDEX = 2
 CURRENT_ABSOLUTE_SOLUTION_IDX = -1
 ABSOLUTE_PURITY_VALUE_COLUMN_NAME = 'alpha'
@@ -39,16 +40,17 @@ PRECALLED_PURITY_COLUMN_NAME = 'precalled_purity_values'
 
 # NOTE: the purity calculated is tau, NOT tau_g. 
 # Use the called purity and tau as inputs to absolute_segforcecall to get tau_g (tau_hat)
-def gen_absolute_solutions_report_range_of_precalled_component(
+def gen_absolute_solutions_report_range_of_precalled_component( 
     data: GenericData,
     data_id,
     slider_value,  # dash app parameters come first
     selected_row_array, # dash app parameters come first
-    precalled_slider_value,
+    precalled_radio_button_value,
     rdata_fn_col,
     acs_col, 
     mut_fig_hover_data,
-    custom_parse_absolute_soln=None
+    custom_parse_absolute_soln=None,
+    internal_callback=False
 ):
     """
     Callback function that updates copy number plots when a new sample/pair is selected 
@@ -68,7 +70,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
     selected_row_array: List[int]
         List of length 1 containing the currently selected ABSOLUTE solution from the ABSOLUTE solution table
         
-    precalled_slider_value: str ["Use slider", "Select All"]
+    precalled_radio_button_value: str ["Use slider", "Select All"]
         Which mode the user wants to use for filtering the absolute solutions that are viewed, based 
         on the precalled purity value; either looking at all the absolute solutions or looking 
         absolute solutions within specific range of precalled purity value  
@@ -84,6 +86,9 @@ def gen_absolute_solutions_report_range_of_precalled_component(
     
     custom_parse_absolute_soln: function
         Custom absolute parser function (rdata_path -> data_df)
+    
+    internal_callback: boolean, default is False
+        whether the function is being called from the new_callback or internal_callback
 
     Returns
     =======
@@ -115,6 +120,10 @@ def gen_absolute_solutions_report_range_of_precalled_component(
     int
         Index of the current ABSOLUTE solution. For new data, it is set to the first solution 0
     """  
+    # checks if you are loading in the data for the first time (new data callback)
+    if not internal_callback:
+        slider_value = 5
+
     # defaults to selecting all precalled purity values
     purity_range_lower = 0
     purity_range_upper = 100
@@ -124,7 +133,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
     precalled_purity_value = pairs_data_row[PRECALLED_PURITY_COLUMN_NAME] # gets the precalled purity value from tumor sample
 
     # checks if you want to display less absolute solutions based on its purity value 
-    if precalled_slider_value == "Use slider":
+    if precalled_radio_button_value == "Use slider":
     
         # gets the lower and upper range of purity values
         purity_range_lower = precalled_purity_value*100 - slider_value  
@@ -158,7 +167,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
     ploidy = 0
 
     absolute_rdata_within_range_df = absolute_rdata_df.loc[(absolute_rdata_df[ABSOLUTE_PURITY_VALUE_COLUMN_NAME]*100 <= purity_range_upper) 
-                                                         & (absolute_rdata_df[ABSOLUTE_PURITY_VALUE_COLUMN_NAME]*100 >= purity_range_lower)]
+                                                        & (absolute_rdata_df[ABSOLUTE_PURITY_VALUE_COLUMN_NAME]*100 >= purity_range_lower)]
     
     if absolute_rdata_within_range_df.shape[0] > 0:
         solution_data = absolute_rdata_within_range_df.iloc[selected_row_array[0]]
@@ -189,15 +198,15 @@ def gen_absolute_solutions_report_range_of_precalled_component(
                                     line_width=1)
     
     return [
-        slider_value,
+        5, # default range for the slider
         precalled_purity_value,
-        selected_row_array,
+        [0], # default selected row is first row in table
         absolute_rdata_within_range_df.to_dict('records'),
         cnp_fig_with_lines, 
         mut_fig_with_lines,
         purity,
         ploidy, 
-        selected_row_array[0] + 1
+        1 # defaults to having the 1st copy number profile 
     ]
 
 def gen_absolute_precalled_solutions_report_internal(
@@ -205,11 +214,12 @@ def gen_absolute_precalled_solutions_report_internal(
     data_id,
     slider_value,  # dash app parameters come first
     selected_row_array, # dash app parameters come first
-    precalled_slider_value,
+    precalled_radio_button_value,
     rdata_fn_col,
     acs_col, 
     mut_fig_hover_data,
-    custom_parse_absolute_soln=None
+    custom_parse_absolute_soln=None,
+    internal_callback=False
 ):
     """
     Callback function that updates copy number plots when the selected ABSOLUTE solution changes
@@ -228,7 +238,7 @@ def gen_absolute_precalled_solutions_report_internal(
     selected_row_array: List
         List of length 1 containing the currently selected ABSOLUTE solution from the ABSOLUTE solution table
         
-    precalled_slider_value: str ["Use slider", "Select All"]
+    precalled_radio_button_value: str ["Use slider", "Select All"]
         Which mode the user wants to use for filtering the absolute solutions that are viewed, based 
         on the precalled purity value; either looking at all the absolute solutions or looking 
         absolute solutions within specific range of precalled purity value 
@@ -244,6 +254,9 @@ def gen_absolute_precalled_solutions_report_internal(
             
     custom_parse_absolute_soln: function
         Custom absolute parser function (rdata_path -> data_df)
+    
+    internal_callback: boolean, default is False
+        whether the function is being called from the new_callback or internal_callback
 
     Returns
     =======
@@ -278,15 +291,17 @@ def gen_absolute_precalled_solutions_report_internal(
     output_data = gen_absolute_solutions_report_range_of_precalled_component(
         data,
         data_id,
-        slider_value,  # dash app parameters come first
-        selected_row_array, # dash app parameters come first
-        precalled_slider_value,
+        slider_value,# dash app parameters come first
+        selected_row_array, 
+        precalled_radio_button_value,
         rdata_fn_col,
         acs_col, 
-        mut_fig_hover_data=mut_fig_hover_data,
-        custom_parse_absolute_soln=custom_parse_absolute_soln
+        mut_fig_hover_data,
+        custom_parse_absolute_soln=custom_parse_absolute_soln,
+        internal_callback=True
     )
 
+    output_data[PRECALLED_SLIDER_VALUE_INDEX] = slider_value
     output_data[SELECTED_ROW_INDEX] = selected_row_array
     output_data[CURRENT_ABSOLUTE_SOLUTION_IDX] = selected_row_array[0] + 1 # 1 based indexing for copy number profile
 

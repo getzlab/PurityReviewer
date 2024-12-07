@@ -1,9 +1,10 @@
 *.idea/*
 *.egg-info*
-<<<<<<< HEAD
 *__pychache__*
 */data/*
-=======
 __pychache__
 .ipynb_checkpoints
->>>>>>> fd8e1b101683e014a3cc1474b694fb4c32ff2ceb
+*local_rdata*
+*precaled_purity_venv*
+*__pycache__*
+*precalled_purity_reviewer_output*
