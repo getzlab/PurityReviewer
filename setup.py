@@ -29,7 +29,7 @@ setuptools.setup(
                         'AnnoMate>=1.0.0',
                         'setuptools>=70.0.0', # security vulnerability with versions up to 69.1.1 
                         'natsort',
-                        'rpy2==3.4.2',
+                        'rpy2', 
                         'firecloud-dalmatian',
                         'cnv_suite',
                         'numpy==1.26.0',
