@@ -326,51 +326,6 @@ def _gen_cnp_figure_cache(acs_fn,
 
     return cnp_fig
 
-def parse_absolute_soln_simulatedTumorData(rdata_path: str) -> pd.DataFrame:
-    """
-    function to convert an rdata file from ABSOLUTE into a pandas dataframe
-    
-    Parameters
-    ==========
-    rdata_path: str, Path
-        LOCAL path to the rdata. This cannot read a gsurl or other remote path
-    
-    Returns
-    =======
-    pd.DataFrame
-        Pandas dataframe of ABSOLUTE purity/ploidy solutions
-    """
-    
-    absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
-                           'sigma_H', 
-                           'theta_Q', 
-                           'lambda',  
-                           'SCNA_likelihood', 
-                           'Kar_likelihood', 
-                           'SSNVs_likelihood']
-    pandas2ri.activate()
-    r_list_vector = robjects.r['load'](rdata_path)
-    r_list_vector = robjects.r[r_list_vector[0]]
-
-    mode_res_idx = r_list_vector.names.index('mode.res')
-    sample_name_idx = r_list_vector.names.index('sample.name')
-    mode_res = r_list_vector[mode_res_idx]
-    mode_tab_idx = mode_res.names.index('mode.tab')
-    mode_tab = mode_res[mode_tab_idx]
-    mod_tab_df = pd.DataFrame(columns=absolute_rdata_cols)
-    mod_tab_df['alpha'] = mode_tab[:, 0]
-    mod_tab_df['tau'] = mode_tab[:, 1]
-    mod_tab_df['tau_hat'] = mode_tab[:, 7]
-    mod_tab_df['0_line'] = mode_tab[:, 3]
-    mod_tab_df['step_size'] = mode_tab[:, 4] * 2
-    mod_tab_df['1_line'] = mod_tab_df['step_size'] + mod_tab_df['0_line']
-    mod_tab_df['sigma_H'] = mode_tab[:, 8]
-    mod_tab_df['theta_Q'] = mode_tab[:, 11]
-    mod_tab_df['lambda'] = mode_tab[:, 12]
-    mod_tab_df['SCNA_likelihood'] = mode_tab[:, 15]
-    mod_tab_df['Kar_likelihood'] = mode_tab[:, 17]
-    mod_tab_df['SSNVs_likelihood'] = mode_tab[:, 20]
-    return mod_tab_df
 
 def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local path   
     """
@@ -492,4 +447,34 @@ def download_rdata(rdata_fn_s, rdata_dir, force_download=False):
         local_rdata_dict[pair_id] = local_absolute_rdata_fn
 
     return pd.Series(local_rdata_dict)
+
+def add_precalled_purities_to_pairs(pairs_df, sample_df, precalled_purity_col_nm='PCA__ABSOLUTE__Cancer_DNA_fraction'):
+    """
+    Makes a new dataframe with the precalled purity values from the sample_df added to the columns from the pairs_df
+
+    Parameters
+    ==========
+    pairs_df: pd.DataFrame, 
+        dataframe of the pairs sample data
+
+    sample_df: pd.DataFrame, 
+        dataframe of the sample data
     
+    precalled_purity_col_nm: str,
+        name of the column with the precalled purity values in the sample_df dataframe
+
+    Returns
+    =======
+        Merged dataframe with the precalled purity values added as a new column to the original pairs_df dataframe
+    """
+
+    pairs_df = pairs_df.copy()
+    sample_df = sample_df.copy()
+
+    precalled_purities_df = sample_df[[precalled_purity_col_nm]]
+    precalled_purities_df = precalled_purities_df[precalled_purities_df[precalled_purity_col_nm].notna()]
+
+    pairs_with_precalled_purity_df = pairs_df.merge(precalled_purities_df, how="inner", left_on="case_sample", right_on="sample_id")
+    pairs_with_precalled_purity_df = pairs_with_precalled_purity_df.rename(columns={precalled_purity_col_nm:'precalled_purity_values'})
+
+    return pairs_with_precalled_purity_df
