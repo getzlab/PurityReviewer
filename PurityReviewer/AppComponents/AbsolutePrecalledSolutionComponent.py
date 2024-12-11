@@ -12,7 +12,7 @@ from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, mut_af_plot#gen_allele_fraction_figure
 
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
@@ -120,6 +120,9 @@ def gen_absolute_solutions_report_range_of_precalled_component(
     int
         Index of the current ABSOLUTE solution. For new data, it is set to the first solution 0
     """  
+    print("inside the newdata callback function")
+
+
     # checks if you are loading in the data for the first time (new data callback)
     if not internal_callback:
         slider_value = 5
@@ -188,9 +191,23 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         purity = solution_data['alpha']
         ploidy = solution_data['tau_hat']
 
-        maf_soln['multiplicity'] = calculate_multiplicity(maf_soln,purity)
+        # maf variable contains all the mutation data, the maf_df
+
+        # if you want to find the mutation maf data use the maf_soln dataframe !!! and the alt_count and ref_count columns naming convention presumably will remain the same
+        # check column names of maf_soln because in the calculate_multiplicity function the alt_count column is accessed with the key 'alt'
+        maf_soln['multiplicity'] = calculate_multiplicity(maf_soln, purity)
+
         mut_fig = gen_mut_figure(maf_soln, hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
         mut_fig_with_lines = go.Figure(mut_fig)
+        ssnv_colors = ["dodgerblue", "darkgrey", "seagreen3"]
+        draw_indvividual_lines = True
+        
+        # allele_fraction_fig = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
+        allele_fraction_fig, _ = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
+        # allele_fraction_fig = gen_allele_fraction_figure(maf_soln) 
+        allele_fraction_lines = go.Figure(allele_fraction_fig)
+        # allele_fraction_with_lines = go.Figure(allele_fraction_fig)
+
         for yval in [1,2]:
             mut_fig_with_lines.add_hline(y=yval,
                                     line_dash="dash",
@@ -204,6 +221,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         absolute_rdata_within_range_df.to_dict('records'),
         cnp_fig_with_lines, 
         mut_fig_with_lines,
+        allele_fraction_lines,
         purity,
         ploidy, 
         1 # defaults to having the 1st copy number profile 
@@ -403,11 +421,15 @@ def gen_absolute_precalled_solution_report_layout():
                                 html.P(0, id='absolute-ploidy',
                                         style={'display': 'inline'})]),
                         dcc.Graph(id='cnp-graph', figure={}),
-                        dcc.Graph(id='mut-graph', figure={})
+                        dcc.Graph(id='mut-graph', figure={}),
+                        # allele fraction graph
+                        dbc.Label("LOCATION OF THE ALLELE FRACTION GRAPH"),
+                        dcc.Graph(id='allele-fraction-graph', figure={}),
+                        # multiplicity graph
+                        dbc.Label("LOCATION OF THE MULTIPLICITY GRAPH"),
                     ]
                 )
-            ],
-                  
+            ],       
         )
     ]
 
@@ -440,6 +462,7 @@ def gen_absolute_precalled_solutions_report_component():
             Output('absolute-rdata-select-table', 'data'),
             Output('cnp-graph', 'figure'),
             Output('mut-graph', 'figure'),
+            Output('allele-fraction-graph', 'figure'),
             Output('absolute-purity', 'children'),
             Output('absolute-ploidy', 'children'),
             Output('absolute-solution-idx', 'children'),
