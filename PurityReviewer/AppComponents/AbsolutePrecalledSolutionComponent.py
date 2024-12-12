@@ -12,7 +12,8 @@ from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, mut_af_plot#gen_allele_fraction_figure
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, mut_af_plot, multiplicity_plot
+#gen_allele_fraction_figure
 
 from rpy2.robjects import r, pandas2ri
 import rpy2.robjects as robjects
@@ -203,10 +204,19 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         draw_indvividual_lines = True
         
         # allele_fraction_fig = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
-        allele_fraction_fig, _ = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
+        # {"af_post_pr": allele_frac_post_probability, "grid_mat": grid_mat}
+        allele_fraction_fig, af_probabilities_grid_dict = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
+
+        allele_frac_posterior_probability = af_probabilities_grid_dict['af_post_pr']
+        grid_mat = af_probabilities_grid_dict['grid_mat'] # NEED TO FIGURE OUT WHAT THIS DOES
+        print
+        mode_color = "grey"
+        draw_indv = True
+        # ssnv_multiplicity_fig = multiplicity_plot(maf_soln, allele_frac_posterior_probability, grid_mat, mode_color, draw_indv)
         # allele_fraction_fig = gen_allele_fraction_figure(maf_soln) 
         allele_fraction_lines = go.Figure(allele_fraction_fig)
-        # allele_fraction_with_lines = go.Figure(allele_fraction_fig)
+        # ssnv_multiplicity_lines = go.Figure()
+        # ssnv_multiplicity_lines = go.Figure(ssnv_multiplicity_fig)
 
         for yval in [1,2]:
             mut_fig_with_lines.add_hline(y=yval,
@@ -222,6 +232,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         cnp_fig_with_lines, 
         mut_fig_with_lines,
         allele_fraction_lines,
+        # ssnv_multiplicity_lines,
         purity,
         ploidy, 
         1 # defaults to having the 1st copy number profile 
@@ -427,6 +438,7 @@ def gen_absolute_precalled_solution_report_layout():
                         dcc.Graph(id='allele-fraction-graph', figure={}),
                         # multiplicity graph
                         dbc.Label("LOCATION OF THE MULTIPLICITY GRAPH"),
+                        dcc.Graph(id='ssnv-multiplicity-graph', figure={}),
                     ]
                 )
             ],       
@@ -463,6 +475,7 @@ def gen_absolute_precalled_solutions_report_component():
             Output('cnp-graph', 'figure'),
             Output('mut-graph', 'figure'),
             Output('allele-fraction-graph', 'figure'),
+            # Output('ssnv-multiplicity-graph', 'figure'),
             Output('absolute-purity', 'children'),
             Output('absolute-ploidy', 'children'),
             Output('absolute-solution-idx', 'children'),

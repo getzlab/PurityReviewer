@@ -653,6 +653,15 @@ def mut_af_plot(mut_dat,
 
     # Plot vertical lines and annotations for alpha and SSNV skew
     alpha = mut_dat.iloc[0]["purity"]
+
+    # ADD IN ANOTHER fig.add_trace(go.Scatter(x=np.linspace(0, 1, len(allele_frac_post_probability)), y=allele_frac_post_probability ))
+    # fig.add_trace(go.Scatter(
+    #     x=np.linspace(0, 1, len(allele_frac_post_probability)),
+    #     y=allele_frac_post_probability,
+    #     mode = "lines",
+    #     line=dict(width=0.5, dash="solid", color="grey")
+    # ))
+
     fig.add_trace(go.Scatter(
         x=[alpha / 2, alpha / 2],
         y=[0, 1],
@@ -665,7 +674,7 @@ def mut_af_plot(mut_dat,
     fig.add_annotation(
         x=alpha / 2,
         y=1.05,
-        text=f"${alpha}_hat / 2$",
+        text="$alpha_hat / 2$",
         showarrow=False,
         font=dict(color=mode_color)
     )
@@ -702,7 +711,13 @@ def mut_af_plot(mut_dat,
 
     return fig, {"af_post_pr": allele_frac_post_probability, "grid_mat": grid_mat}
 
-def get_ssnv_on_clonal_cn_multiplicity_densities(seg_dat, mut_dat, af_post_pr, grid_mat, verbose=False):
+def get_ssnv_on_clonal_cn_multiplicity_densities(
+                                                #  seg_dat, 
+                                                 mut_dat, 
+                                                 af_post_pr, 
+                                                 grid_mat, 
+                                                #  verbose=False
+                                                 ):
     # Remove mutations on HZdels
     hz_del_flag = mut_dat["q_hat"] == 0
     nix = hz_del_flag
@@ -722,7 +737,17 @@ def get_ssnv_on_clonal_cn_multiplicity_densities(seg_dat, mut_dat, af_post_pr, g
 
     return {"mult_dens": mult_dens, "mult_grid": mult_grid}
 
-def multiplicity_plot(seg_dat, mut_dat, af_post_pr, grid_mat, SSNV_cols, mode_color, draw_indv, verbose=False):
+def multiplicity_plot(
+                    #   seg_dat, 
+                      mut_dat, 
+                      af_post_pr, 
+                      grid_mat, 
+                    #   SSNV_cols, 
+                      mode_color, 
+                      draw_indv, 
+                      verbose=False):
+    
+    print("I AM IN THE MULTIPLICITY SSNV PLOT!!")
     
     # Filtering data based on conditions (hz.del.ix, SC_CN.ix, nix)
     hz_del_ix = mut_dat["q_hat"] == 0
@@ -739,7 +764,11 @@ def multiplicity_plot(seg_dat, mut_dat, af_post_pr, grid_mat, SSNV_cols, mode_co
         return
 
     # Get SSNV on clonal CN multiplicity densities
-    res = get_ssnv_on_clonal_cn_multiplicity_densities(seg_dat, mut_dat, af_post_pr, grid_mat, verbose=verbose)
+    res = get_ssnv_on_clonal_cn_multiplicity_densities(
+                                                    #   seg_dat, 
+                                                       mut_dat, af_post_pr, grid_mat, 
+                                                    #    verbose=verbose
+                                                       )
 
     mult_dens = res["mult_dens"]
     mult_grid = res["mult_grid"]
@@ -785,6 +814,8 @@ def multiplicity_plot(seg_dat, mut_dat, af_post_pr, grid_mat, SSNV_cols, mode_co
     )
 
     fig.show()
+
+    return fig
 
 def classify_somatic_variants(prs, pr_thresh):
     # Create boolean arrays based on threshold condition
