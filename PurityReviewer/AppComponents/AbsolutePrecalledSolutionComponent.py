@@ -205,11 +205,12 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         
         # allele_fraction_fig = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
         # {"af_post_pr": allele_frac_post_probability, "grid_mat": grid_mat}
-        allele_fraction_fig, af_probabilities_grid_dict = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
+        # allele_fraction_fig, af_probabilities_grid_dict = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
+        allele_fraction_fig, _ = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
 
-        allele_frac_posterior_probability = af_probabilities_grid_dict['af_post_pr']
-        grid_mat = af_probabilities_grid_dict['grid_mat'] # NEED TO FIGURE OUT WHAT THIS DOES
-        print
+        # allele_frac_posterior_probability = af_probabilities_grid_dict['af_post_pr']
+        # grid_mat = af_probabilities_grid_dict['grid_mat'] # NEED TO FIGURE OUT WHAT THIS DOES
+        
         mode_color = "grey"
         draw_indv = True
         # ssnv_multiplicity_fig = multiplicity_plot(maf_soln, allele_frac_posterior_probability, grid_mat, mode_color, draw_indv)
@@ -231,7 +232,8 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         absolute_rdata_within_range_df.to_dict('records'),
         cnp_fig_with_lines, 
         mut_fig_with_lines,
-        allele_fraction_lines,
+        allele_fraction_fig,
+        # allele_fraction_lines,
         # ssnv_multiplicity_lines,
         purity,
         ploidy, 

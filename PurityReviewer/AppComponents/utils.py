@@ -550,35 +550,60 @@ def draw_mut_beta_densities(beta_grid, probability_clonal, hz_del_flag, cols,
     color_by = probability_clonal
 
     # Map probability_clonal values to color palette indices
-    palette_idx = np.floor((color_by - color_range[0]) / (color_range[1] - color_range[0]) * (col_scale - 1)).astype(int)
-    mut_colors = np.array(color_palette)[palette_idx]
+    # palette_idx = np.floor((color_by - color_range[0]) / (color_range[1] - color_range[0]) * (col_scale - 1)).astype(int)
+    # mut_colors = np.array(color_palette)[palette_idx]
     
     # Set color to navy for hz_del_flag
-    for i in range(len(hz_del_flag)):
-        if hz_del_flag[i]:
-            mut_colors[i] = 'navy'
+    # for i in range(len(hz_del_flag)):
+    #     if hz_del_flag[i]:
+    #         mut_colors[i] = 'navy'
 
     # Initialize figure
     fig = go.Figure()
     
+    # # Plot individual densities if draw_indv is True
+    # if draw_indv:
+    #     for i in range(beta_grid.shape[0]):
+    #         fig.add_trace(go.Scatter(
+    #             x=grid_vals, 
+    #             y=beta_grid[i, :], 
+    #             mode='lines', 
+    #             # CHANGE SO THAT IT IS JUST BLEU COLOR
+    #             # line=dict(color=mut_colors[i]), 
+    #             line=dict(color="blue"), 
+    #             name=f'Sample {i+1}'  # Optional: Add label for each line
+    #         ))
+    
+    # initializes clonal and subclonal weighted grids
+    clonal_grid = np.zeros_like(beta_grid)
+    subclonal_grid = np.zeros_like(beta_grid)
+
+    for i in range(beta_grid.shape[0]):
+        clonal_grid[i, :] = beta_grid[i, :] * probability_clonal[i]
+        subclonal_grid[i, :] = beta_grid[i, :] * (1 - probability_clonal[i])
+
     # Plot individual densities if draw_indv is True
     if draw_indv:
         for i in range(beta_grid.shape[0]):
             fig.add_trace(go.Scatter(
-                x=grid_vals, 
-                y=beta_grid[i, :], 
+                x=np.linspace(0, 1, len(clonal_grid)), 
+                y=clonal_grid[i, :], 
                 mode='lines', 
-                line=dict(color=mut_colors[i]), 
-                name=f'Individual {i+1}'  # Optional: Add label for each line
+                # CHANGE SO THAT IT IS JUST BLEU COLOR
+                # line=dict(color=mut_colors[i]), 
+                line=dict(color="blue"), 
+                name=f'Clonal Sample {i+1}'  # Optional: Add label for each line
             ))
-    
-    # initializes clonal and subclonal weighted grids
-    clonal_grid = np.zeros_like(beta_grid)
-    sc_grid = np.zeros_like(beta_grid)
 
-    for i in range(beta_grid.shape[0]):
-        clonal_grid[i, :] = beta_grid[i, :] * probability_clonal[i]
-        sc_grid[i, :] = beta_grid[i, :] * probability_clonal[i]
+            fig.add_trace(go.Scatter(
+                x=np.linspace(0, 1, len(subclonal_grid)), 
+                y=subclonal_grid[i, :], 
+                mode='lines', 
+                # CHANGE SO THAT IT IS JUST BLEU COLOR
+                # line=dict(color=mut_colors[i]), 
+                line=dict(color="grey"), 
+                name=f'Subclonal Sample {i+1}'  # Optional: Add label for each line
+            ))
     
     # Plot the total weighted densities if draw_total is True
     if draw_total:
@@ -586,15 +611,15 @@ def draw_mut_beta_densities(beta_grid, probability_clonal, hz_del_flag, cols,
             x=grid_vals, 
             y=np.sum(clonal_grid, axis=0) / np.max(np.sum(clonal_grid, axis=0)),
             mode='lines', 
-            line=dict(color=cols[1], dash='dash'),  # Dashed line for clonal
+            line=dict(color="blue", dash='dash'),  # Dashed line for clonal
             name='Clonal Weighted'
         ))
 
         fig.add_trace(go.Scatter(
             x=grid_vals, 
-            y=np.sum(sc_grid, axis=0) / np.max(np.sum(sc_grid, axis=0)),
+            y=np.sum(subclonal_grid, axis=0) / np.max(np.sum(subclonal_grid, axis=0)),
             mode='lines', 
-            line=dict(color=cols[0], dash='dash'),  # Dashed line for subclonal
+            line=dict(color="grey", dash='dash'),  # Dashed line for subclonal
             name='Subclonal Weighted'
         ))
     
@@ -620,10 +645,10 @@ def mut_af_plot(mut_dat,
     
     """
     # DEBUGGING!!
-    print("inside the mut_af_plot function")
-    print("these are the columnn names of the mut_dat dataframe")
-    print(list(mut_dat.columns))
-    print()
+    # print("inside the mut_af_plot function")
+    # print("these are the columnn names of the mut_dat dataframe")
+    # print(list(mut_dat.columns))
+    # print()
     # END OF DEBUGGING!!
 
     coverage = mut_dat["alt"] + mut_dat["ref"]
@@ -636,8 +661,8 @@ def mut_af_plot(mut_dat,
     allele_frac_post_probability = calculate_mutation_beta_densities(mut_dat, n_grid=n_grid)
 
     # DEBUGGING
-    print("allele_frac_post_probability")
-    print(allele_frac_post_probability)
+    # print("allele_frac_post_probability")
+    # print(allele_frac_post_probability)
     # END OF DEBUGGING!!
 
     grid_vals = np.arange(1, n_grid + 1) / (n_grid + 1)
@@ -647,9 +672,9 @@ def mut_af_plot(mut_dat,
     fig = go.Figure()
 
     hz_del_flag = mut_dat["q_hat"] == 0
-    # fig2 = draw_mut_beta_densities(allele_frac_post_probability, probability_clonal, hz_del_flag, ssnv_colors, 
-    #                                draw_indv=draw_indv, draw_total=True)
-    # return fig2
+    fig = draw_mut_beta_densities(allele_frac_post_probability, probability_clonal, hz_del_flag, ssnv_colors, 
+                                   draw_indv=draw_indv, draw_total=True)
+    return fig, ()
 
     # Plot vertical lines and annotations for alpha and SSNV skew
     alpha = mut_dat.iloc[0]["purity"]
