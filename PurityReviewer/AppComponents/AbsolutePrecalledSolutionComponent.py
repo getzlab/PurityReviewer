@@ -200,19 +200,21 @@ def gen_absolute_solutions_report_range_of_precalled_component(
 
         mut_fig = gen_mut_figure(maf_soln, hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
         mut_fig_with_lines = go.Figure(mut_fig)
-        ssnv_colors = ["dodgerblue", "darkgrey", "seagreen3"]
-        draw_indvividual_lines = True
+        # ssnv_colors = ["dodgerblue", "darkgrey", "seagreen3"]
+        # draw_indvividual_lines = True
         
         # allele_fraction_fig = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
         # {"af_post_pr": allele_frac_post_probability, "grid_mat": grid_mat}
         # allele_fraction_fig, af_probabilities_grid_dict = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
-        allele_fraction_fig, _, debugging = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
+        allele_fraction_fig, _, debugging_value = mut_af_plot(maf_soln, 
+                                            #  ssnv_colors, draw_indvividual_lines
+                                             ) 
 
-        # DEBUGGING !!!
-        debugging_value = f"shape: {debugging.shape} values: "
-        for val in debugging[:5]:
-            debugging_value = debugging_value + "" + str(val) + ", " 
-        # END OF DEBUGGING!!
+        # # DEBUGGING !!!
+        # debugging_value = f"shape: {debugging.shape} values: "
+        # for val in debugging[:5]:
+        #     debugging_value = debugging_value + "" + str(val) + ", " 
+        # # END OF DEBUGGING!!
 
 
         # allele_frac_posterior_probability = af_probabilities_grid_dict['af_post_pr']

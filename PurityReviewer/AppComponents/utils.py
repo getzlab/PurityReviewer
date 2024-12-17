@@ -502,8 +502,6 @@ def gen_allele_fraction_figure(maf_df):
 def calculate_mutation_beta_densities(mutation_df,
                                     alt_count_col='alt', 
                                     ref_count_col='ref',
-                                    # alt_count_col='t_alt_count', 
-                                    # ref_count_col='t_ref_count',
                                     n_grid=100):
     """
     
@@ -517,16 +515,15 @@ def calculate_mutation_beta_densities(mutation_df,
     allele_fraction = mutation_df[alt_count_col] / coverage
     
     # Generate the grid values
-    grid_vals = np.arange(1, n_grid + 1) / (n_grid + 1)
+    grid_vals = np.arange(1, n_grid + 1) / (n_grid + 1) # a normalized array of values from 0 to 1
     
     # Calculate the Beta densities for each /sample
     for i in range(mutation_df.shape[0]):
         
         mut_grid[i, :] = beta.pdf(grid_vals, 
                                   mutation_df[alt_count_col][i] + 1,
-                                  mutation_df[ref_count_col][i] + 1 
-                                #   coverage[i] - mutation_df[alt_count_col][i]+ 1 
-                                  )/ n_grid
+                                  mutation_df[ref_count_col][i] + 1  # num of ref count mutations + 1 = total count of mutations - num of alt count mutations + 1
+                                  ) / n_grid # makes the distribution between 0 and 1
                             # beta.pdf(grid_vals, 
                             #       coverage[i] * allele_fraction[i] + 1, 
                             #       coverage[i] * (1 - allele_fraction[i] + 1), 
@@ -541,124 +538,73 @@ def calculate_mutation_beta_densities(mutation_df,
     return mut_grid
 
 
-def draw_mut_beta_densities(beta_grid, probability_clonal, hz_del_flag, cols, 
-                            draw_indv=True, draw_total=True):
+def draw_mut_beta_densities(beta_grid, 
+                            probability_clonal, 
+                            ):
     """
     
     """
     n_grid = beta_grid.shape[1]
-    grid_vals = np.arange(1, n_grid + 1) / (n_grid + 1)
+    # grid_vals = np.arange(1, n_grid + 1) / (n_grid + 1)
     probability_subclonal = 1 - probability_clonal
     probability_subclonal[probability_subclonal < 0] = 0  # Handling round-off error
     
-    ## Create color palette using Plotly Express
-    # color_palette = px.colors.sample_colorscale('RdBu', np.linspace(0, 1, 1000))  # Custom color scale
-    # col_scale = len(color_palette)
-    # color_range = (0, 1)
-    # color_by = probability_clonal
-
-    # Map probability_clonal values to color palette indices
-    # palette_idx = np.floor((color_by - color_range[0]) / (color_range[1] - color_range[0]) * (col_scale - 1)).astype(int)
-    # mut_colors = np.array(color_palette)[palette_idx]
-    
-    # Set color to navy for hz_del_flag
-    # for i in range(len(hz_del_flag)):
-    #     if hz_del_flag[i]:
-    #         mut_colors[i] = 'navy'
-
     # Initialize figure
     fig = go.Figure()
-    
-    # # Plot individual densities if draw_indv is True
-    # if draw_indv:
-    #     for i in range(beta_grid.shape[0]):
-    #         fig.add_trace(go.Scatter(
-    #             x=grid_vals, 
-    #             y=beta_grid[i, :], 
-    #             mode='lines', 
-    #             # CHANGE SO THAT IT IS JUST BLEU COLOR
-    #             # line=dict(color=mut_colors[i]), 
-    #             line=dict(color="blue"), 
-    #             name=f'Sample {i+1}'  # Optional: Add label for each line
-    #         ))
     
     # initializes clonal and subclonal weighted grids
     clonal_grid = np.zeros_like(beta_grid)
     subclonal_grid = np.zeros_like(beta_grid)
-    # weighted_sum_clonal_grid = np.zeros(len(clonal_grid))
-    # weighted_sum_subclonal_grid = np.zeros(len(subclonal_grid))
+
+    # USE np.dot, to comput the clonal_grid and subclonal_grid values
+    # DEBUGGING!!!
+    debugging_value = f"beta_grid shape: {beta_grid.shape}; probability_clonal shape: {probability_clonal.shape}; clonal_grid shape: {clonal_grid.shape}"
+    # END OF DEBUGGING!!!
+
 
     for i in range(beta_grid.shape[0]):
         clonal_grid[i, :] = beta_grid[i, :] * probability_clonal[i]
-        subclonal_grid[i, :] = beta_grid[i, :] * probability_subclonal[i] #(1 - probability_clonal[i])
+        subclonal_grid[i, :] = beta_grid[i, :] * probability_subclonal[i] 
 
-        # weighted_sum_clonal_grid[i] = np.sum(clonal_grid[i, :]) / len(clonal_grid[i, :])
-        # weighted_sum_subclonal_grid[i] = np.sum(subclonal_grid[i, :]) / len(subclonal_grid[i, :])
-
-    # Plot individual densities if draw_indv is True
-    # if draw_indv:
-         
-    for i in range(beta_grid.shape[0]):
+    # Plot individual densities
+    # for i in range(beta_grid.shape[0]):
         fig.add_trace(go.Scatter(
             x=np.linspace(0, 1, len(clonal_grid)), 
-            y=clonal_grid[i, :], 
+            # y=clonal_grid[i, :], 
+            y=clonal_grid[0, :], 
             mode='lines', 
             line=dict(color="blue"), 
             name=f'Clonal Sample {i+1}'  # Optional: Add label for each line
         ))
 
+        # REMINDER TO UNCOMMENT y PARAMETER AFTER FINISHED WITH DEBUGGING!!
         fig.add_trace(go.Scatter(
             x=np.linspace(0, 1, len(subclonal_grid)), 
-            y=subclonal_grid[i, :], 
+            # y=subclonal_grid[i, :], 
+            y=subclonal_grid[0, :], 
             mode='lines', 
-            # CHANGE SO THAT IT IS JUST BLEU COLOR
-            # line=dict(color=mut_colors[i]), 
             line=dict(color="grey"), 
             name=f'Subclonal Sample {i+1}'  # Optional: Add label for each line
         ))
-    # debugging_value = clonal_grid
-    debugging_value = np.sum(clonal_grid, axis=0) / np.max(np.sum(clonal_grid, axis=0))
-    # debugging_value = beta_grid
-    # debugging_value = grid_vals
+    # debugging_value = np.sum(clonal_grid, axis=0) / np.max(np.sum(clonal_grid, axis=0))
     
     # Plot the total weighted densities if draw_total is True
     if True:
         fig.add_trace(go.Scatter(
-            x= np.linspace(0, 1, subclonal_grid.shape[0]),#grid_vals, 
-            # x= grid_vals,
-            # x= beta_grid, 
+            x= np.linspace(0, 1, subclonal_grid.shape[0]),
             y= np.sum(subclonal_grid, axis=0) / np.max(np.sum(subclonal_grid, axis=0)),
-            # y= np.sum(subclonal_grid, axis=1) / np.max(np.sum(subclonal_grid, axis=1)),
             mode='lines', 
-            line=dict(color="purple", dash='dash'),  # Dashed line for subclonal
+            line=dict(color="grey", dash='dash'),  # Dashed line for subclonal
             name='Subclonal Weighted'
         ))
         fig.add_trace(go.Scatter(
-            x= np.linspace(0, 1, clonal_grid.shape[0]),#grid_vals, 
-            # x= grid_vals, 
+            x= np.linspace(0, 1, clonal_grid.shape[0]), # MIGHT NEED TO CHANGE IT TO np.linspace(0, 1, clonal_grid.shape[1])
             y=np.sum(clonal_grid, axis=0) / np.max(np.sum(clonal_grid, axis=0)),
-            # y=np.sum(clonal_grid, axis=1) / np.max(np.sum(clonal_grid, axis=1)),
             mode='lines', 
-            line=dict(color="black", dash='dash'),  # Dashed line for clonal
+            line=dict(color="blue", dash='dash'),  # Dashed line for clonal
             name='Clonal Weighted'
         ))
-        
-        # fig.add_trace(go.Scatter(
-        #     x= np.linspace(0, 1, len(clonal_grid)),#grid_vals, 
-        #     y=np.ones(len(clonal_grid)),
-        #     mode='lines', 
-        #     line=dict(color="black", dash='dash'),  # Dashed line for clonal
-        #     name='Clonal Weighted'
-        # ))
-
-        # fig.add_trace(go.Scatter(
-        #     x= np.linspace(0, 1, len(subclonal_grid)),#grid_vals, 
-        #     y= np.ones(len(subclonal_grid)) * 0.75,
-        #     mode='lines', 
-        #     line=dict(color="purple", dash='dash'),  # Dashed line for subclonal
-        #     name='Subclonal Weighted'
-        # ))
-    
+      
     # Update layout with titles and axis labels
     fig.update_layout(
         title="Beta Densities",
@@ -670,69 +616,72 @@ def draw_mut_beta_densities(beta_grid, probability_clonal, hz_del_flag, cols,
     # Show the plot
     fig.show()
 
-    return fig, debugging_value
+    return fig , debugging_value
 
-def mut_af_plot(mut_dat, 
-                ssnv_colors, 
-                draw_indv,
-                mode_color="blue", 
+def mut_af_plot(
+                mut_dat, 
                 ):
     """
+    Generates the muation allele fraction plot and returns the figure for the plot
+
+    Parameters
+    ==========
+    mut_dat: pd.Dataframe
+        the data
+
+    Return
+    ======
+        go.Figure
     
     """
-    # DEBUGGING!!
-    # print("inside the mut_af_plot function")
-    # print("these are the columnn names of the mut_dat dataframe")
-    # print(list(mut_dat.columns))
-    # print()
-    # END OF DEBUGGING!!
+    # coverage = mut_dat["alt"] + mut_dat["ref"]
 
-    coverage = mut_dat["alt"] + mut_dat["ref"]
-
+    # gets the probabilities for subclonal and clonal alternate reads
+    mode_color="blue"
     probability_clonal = mut_dat["Pr_somatic_clonal"]
-    pr_cryptic_scna = mut_dat["Pr_cryptic_SCNA"]
-    ssnv_skew = mut_dat.iloc[0]["SSNV_skew"]  # Assuming this is a scalar
+    # pr_cryptic_scna = mut_dat["Pr_cryptic_SCNA"]
+
+    # gets ssnv skew and purity value
+    # ssnv_skew = mut_dat.iloc[0]["SSNV_skew"]  
+    # alpha = mut_dat.iloc[0]["purity"] 
+    ssnv_skew = np.mean(mut_dat["SSNV_skew"])  
+    alpha = np.mean(mut_dat["purity"]) 
 
     n_grid = 300
     allele_frac_post_probability = calculate_mutation_beta_densities(mut_dat, n_grid=n_grid)
-
-    # DEBUGGING
-    # print("allele_frac_post_probability")
-    # print(allele_frac_post_probability)
-    # END OF DEBUGGING!!
-
-    grid_vals = np.arange(1, n_grid + 1) / (n_grid + 1)
+    grid_vals = np.arange(1, n_grid + 1) / (n_grid + 1) # gets a normalized array of with values between 0 and 1
     grid_mat = np.tile(grid_vals, (allele_frac_post_probability.shape[0], 1))
 
     # Create the plot using plotly
     fig = go.Figure()
 
-    hz_del_flag = mut_dat["q_hat"] == 0
-    fig, debugging_value = draw_mut_beta_densities(allele_frac_post_probability, probability_clonal, hz_del_flag, ssnv_colors, 
-                                   draw_indv=draw_indv, draw_total=True)
-    # return fig, ()
-
-    # Plot vertical lines and annotations for alpha and SSNV skew
-    alpha = mut_dat.iloc[0]["purity"]
-
+    # hz_del_flag = mut_dat["q_hat"] == 0
+    # fig = draw_mut_beta_densities(allele_frac_post_probability, 
+    #                               probability_clonal, 
+    #                                )
+    fig, debugging_value = draw_mut_beta_densities(allele_frac_post_probability, 
+                                  probability_clonal, 
+                                   )
+    
+    # plots the vertical line for alpha/2 on figure
     fig.add_trace(go.Scatter(
         x=[alpha / 2, alpha / 2],
         y=[0, 1],
         mode="lines",
         line=dict(width=0.5, dash="dash", color=mode_color),
-        name=f'${alpha}_hat / 2$'
+        name='alpha_hat / 2'
     ))
 
-    # Annotate alpha/2
+    # Adds alpha/2 label to figure
     fig.add_annotation(
         x=alpha / 2,
         y=1.05,
-        text="$alpha_hat / 2$",
+        text="alpha_hat / 2",
         showarrow=False,
         font=dict(color=mode_color)
     )
 
-    # Plot the line for SSNV skew * alpha / 2
+    # plots the SSNV skew * alpha / 2 line on the figure
     fig.add_trace(go.Scatter(
         x=[alpha * ssnv_skew / 2, alpha * ssnv_skew / 2],
         y=[0, 1],
@@ -741,10 +690,10 @@ def mut_af_plot(mut_dat,
         name='f_s_hat dot alpha / 2'
     ))
 
-    # Annotate SSNV skew line
+    # Adds SSNV skew line label to figure
     fig.add_annotation(
         x=alpha * ssnv_skew / 2,
-        y=1.05,
+        y=1.15,
         text="f_s_hat dot alpha_hat / 2",
         showarrow=False,
         font=dict(color="black")
@@ -756,7 +705,9 @@ def mut_af_plot(mut_dat,
         xaxis_title="Fraction of Alternate Reads",
         yaxis_title="Density",
         template="plotly_white",
-        showlegend=True
+        showlegend=True,
+        xaxis=dict(range=[0, 1]),
+        yaxis=dict(range=[0, 1.2]) # increase the y limit so the skew and purity labels do not get cut off
     )
 
     # Show the plot
@@ -800,7 +751,7 @@ def multiplicity_plot(
                       draw_indv, 
                       verbose=False):
     
-    print("I AM IN THE MULTIPLICITY SSNV PLOT!!")
+    # print("I AM IN THE MULTIPLICITY SSNV PLOT!!")
     
     # Filtering data based on conditions (hz.del.ix, SC_CN.ix, nix)
     hz_del_ix = mut_dat["q_hat"] == 0
