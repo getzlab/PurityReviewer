@@ -206,7 +206,14 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         # allele_fraction_fig = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
         # {"af_post_pr": allele_frac_post_probability, "grid_mat": grid_mat}
         # allele_fraction_fig, af_probabilities_grid_dict = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
-        allele_fraction_fig, _ = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
+        allele_fraction_fig, _, debugging = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
+
+        # DEBUGGING !!!
+        debugging_value = f"shape: {debugging.shape} values: "
+        for val in debugging[:5]:
+            debugging_value = debugging_value + "" + str(val) + ", " 
+        # END OF DEBUGGING!!
+
 
         # allele_frac_posterior_probability = af_probabilities_grid_dict['af_post_pr']
         # grid_mat = af_probabilities_grid_dict['grid_mat'] # NEED TO FIGURE OUT WHAT THIS DOES
@@ -233,6 +240,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         cnp_fig_with_lines, 
         mut_fig_with_lines,
         allele_fraction_fig,
+        debugging_value,
         # allele_fraction_lines,
         # ssnv_multiplicity_lines,
         purity,
@@ -397,6 +405,16 @@ def gen_absolute_precalled_solution_report_layout():
                             )
                         ], 
                     ),
+
+                # DEBUGGING ELEMENTS
+                html.Div(
+                    children=[
+                        dbc.Label(children='Debugging Some Stuff', id='debugging-value-1')
+                    ]
+                ),
+
+                # END OF DEBUGGING ELEMENTS!!!
+
                     # displays the absolute solutions report
                 html.Div(
                     children=[
@@ -477,6 +495,7 @@ def gen_absolute_precalled_solutions_report_component():
             Output('cnp-graph', 'figure'),
             Output('mut-graph', 'figure'),
             Output('allele-fraction-graph', 'figure'),
+            Output('debugging-value-1', 'children'),
             # Output('ssnv-multiplicity-graph', 'figure'),
             Output('absolute-purity', 'children'),
             Output('absolute-ploidy', 'children'),
