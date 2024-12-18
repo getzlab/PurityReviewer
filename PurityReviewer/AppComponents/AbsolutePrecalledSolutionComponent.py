@@ -122,7 +122,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         Index of the current ABSOLUTE solution. For new data, it is set to the first solution 0
     """  
     print("inside the newdata callback function")
-
+    debugging_value = "No Value to Debug!!"
 
     # checks if you are loading in the data for the first time (new data callback)
     if not internal_callback:
@@ -196,27 +196,27 @@ def gen_absolute_solutions_report_range_of_precalled_component(
 
         mut_fig = gen_mut_figure(maf_soln, hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
         mut_fig_with_lines = go.Figure(mut_fig)
-        debugging_value = "No Value to Debug!!"
+        
         # {"af_post_pr": allele_frac_post_probability, "grid_mat": grid_mat}
         allele_fraction_fig, af_probability_dict = mut_allele_fraction_plot(maf_soln) 
 
-        # # DEBUGGING !!!
-        # debugging_value = str(np.any(debugging))
-        # debugging_value = f"shape: {debugging.shape} values: "
-        # for val in debugging[:20]:
-        #     debugging_value = debugging_value + "" + str(val) + ", " 
-        ## END OF DEBUGGING!!
-
+        
+        ssnv_multiplicity_fig = go.Figure()
         allele_frac_posterior_probability = af_probability_dict['af_post_pr']
         grid_mat = af_probability_dict['grid_mat'] # NEED TO FIGURE OUT WHAT THIS DOES
         
-        # ssnv_multiplicity_fig = gen_multiplicity_plot(maf_soln, 
-        #                                           allele_frac_posterior_probability, 
-        #                                           grid_mat, 
-        #                                           )
-        # ssnv_multiplicity_lines = go.Figure()
-        # ssnv_multiplicity_lines = go.Figure(ssnv_multiplicity_fig)
+        ssnv_multiplicity_fig, debugging = gen_multiplicity_plot(maf_soln, 
+                                                    allele_frac_posterior_probability, 
+                                                    grid_mat, 
+                                                  )
+        
+        # # DEBUGGING !!!
+        debugging_value = f"shape: {debugging.shape} values: "
 
+        for val in debugging[:10]:
+            debugging_value = debugging_value + "" + str(val) + ", " 
+        # END OF DEBUGGING!!
+        
         for yval in [1,2]:
             mut_fig_with_lines.add_hline(y=yval,
                                     line_dash="dash",
@@ -231,8 +231,8 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         cnp_fig_with_lines, 
         mut_fig_with_lines,
         allele_fraction_fig,
+        ssnv_multiplicity_fig,
         debugging_value,
-        # ssnv_multiplicity_lines,
         purity,
         ploidy, 
         1 # defaults to having the 1st copy number profile 
@@ -485,8 +485,8 @@ def gen_absolute_precalled_solutions_report_component():
             Output('cnp-graph', 'figure'),
             Output('mut-graph', 'figure'),
             Output('allele-fraction-graph', 'figure'),
-            Output('debugging-value-1', 'children'),
-            # Output('ssnv-multiplicity-graph', 'figure'),
+            Output('ssnv-multiplicity-graph', 'figure'),
+            Output('debugging-value-1', 'children'), # REMOVE DEBUGGING LATER!!
             Output('absolute-purity', 'children'),
             Output('absolute-ploidy', 'children'),
             Output('absolute-solution-idx', 'children'),
