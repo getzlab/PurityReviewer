@@ -12,7 +12,7 @@ from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, mut_af_plot, multiplicity_plot
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, mut_allele_fraction_plot, gen_multiplicity_plot
 #gen_allele_fraction_figure
 
 from rpy2.robjects import r, pandas2ri
@@ -192,39 +192,28 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         purity = solution_data['alpha']
         ploidy = solution_data['tau_hat']
 
-        # maf variable contains all the mutation data, the maf_df
-
-        # if you want to find the mutation maf data use the maf_soln dataframe !!! and the alt_count and ref_count columns naming convention presumably will remain the same
-        # check column names of maf_soln because in the calculate_multiplicity function the alt_count column is accessed with the key 'alt'
         maf_soln['multiplicity'] = calculate_multiplicity(maf_soln, purity)
 
         mut_fig = gen_mut_figure(maf_soln, hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
         mut_fig_with_lines = go.Figure(mut_fig)
-        # ssnv_colors = ["dodgerblue", "darkgrey", "seagreen3"]
-        # draw_indvividual_lines = True
-        
-        # allele_fraction_fig = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
+        debugging_value = "No Value to Debug!!"
         # {"af_post_pr": allele_frac_post_probability, "grid_mat": grid_mat}
-        # allele_fraction_fig, af_probabilities_grid_dict = mut_af_plot(maf_soln, ssnv_colors, draw_indvividual_lines) 
-        allele_fraction_fig, _, debugging_value = mut_af_plot(maf_soln, 
-                                            #  ssnv_colors, draw_indvividual_lines
-                                             ) 
+        allele_fraction_fig, af_probability_dict = mut_allele_fraction_plot(maf_soln) 
 
         # # DEBUGGING !!!
+        # debugging_value = str(np.any(debugging))
         # debugging_value = f"shape: {debugging.shape} values: "
-        # for val in debugging[:5]:
+        # for val in debugging[:20]:
         #     debugging_value = debugging_value + "" + str(val) + ", " 
-        # # END OF DEBUGGING!!
+        ## END OF DEBUGGING!!
 
-
-        # allele_frac_posterior_probability = af_probabilities_grid_dict['af_post_pr']
-        # grid_mat = af_probabilities_grid_dict['grid_mat'] # NEED TO FIGURE OUT WHAT THIS DOES
+        allele_frac_posterior_probability = af_probability_dict['af_post_pr']
+        grid_mat = af_probability_dict['grid_mat'] # NEED TO FIGURE OUT WHAT THIS DOES
         
-        mode_color = "grey"
-        draw_indv = True
-        # ssnv_multiplicity_fig = multiplicity_plot(maf_soln, allele_frac_posterior_probability, grid_mat, mode_color, draw_indv)
-        # allele_fraction_fig = gen_allele_fraction_figure(maf_soln) 
-        allele_fraction_lines = go.Figure(allele_fraction_fig)
+        # ssnv_multiplicity_fig = gen_multiplicity_plot(maf_soln, 
+        #                                           allele_frac_posterior_probability, 
+        #                                           grid_mat, 
+        #                                           )
         # ssnv_multiplicity_lines = go.Figure()
         # ssnv_multiplicity_lines = go.Figure(ssnv_multiplicity_fig)
 
@@ -243,7 +232,6 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         mut_fig_with_lines,
         allele_fraction_fig,
         debugging_value,
-        # allele_fraction_lines,
         # ssnv_multiplicity_lines,
         purity,
         ploidy, 
