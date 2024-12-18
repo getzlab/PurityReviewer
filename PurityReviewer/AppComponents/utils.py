@@ -618,14 +618,6 @@ def draw_mut_beta_densities(
         name='Clonal Weighted'
     ))
       
-    # Update layout with titles and axis labels
-    # fig.update_layout(
-    #     title="Beta Densities",
-    #     xaxis_title="Grid Values",
-    #     yaxis_title="Density",
-    #     template="plotly_white"
-    # )
-
     # Show the plot
     fig.show()
 
@@ -719,6 +711,7 @@ def mut_allele_fraction_plot(
     )
 
     # Show the plot
+    fig.update_layout(showlegend=False)
     fig.show()
 
     return fig, {"af_post_pr": allele_frac_post_probability, "grid_mat": grid_mat}
@@ -808,40 +801,59 @@ def gen_multiplicity_plot(
                                     mult_xlim, 
                                     )
 
-    # debugging_value = mult_dens
-
     # Add total density curve if requested
     total_density = np.sum(mult_dens, axis=0) / np.max(np.sum(mult_dens, axis=0))  # normalized sum of densities across individuals
     debugging_value = total_density
-    
-    # fig.add_trace(go.Scatter(
-    #     # x=mult_grid, 
-    #     x=np.linspace(0, 2.5, len(total_density)),
-    #     y=total_density, 
-    #     mode='lines', 
-    #     name='Total Density', 
-    #     line=dict(color='purple', width=2)
-    # ))
 
     # Add vertical lines for integer multiplicities (v=1, v=2)
-    fig.add_vline(
-        x=1, 
-        line=dict(dash='dash', width=2, color="green")
+    fig.add_trace(go.Scatter(
+        x=[1, 1],
+        y=[0, 1],
+        mode="lines",
+        line=dict(width=2, dash="dash", color="green"),
+        name="multiplicity line at 1"
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=[2, 2],
+        y=[0, 1],
+        mode="lines",
+        line=dict(width=2, dash="dash", color="green"),
+        name="multiplicity line at 2"
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=[SSNV_skew * 1, SSNV_skew * 1],
+        y=[0, 1],
+        mode="lines",
+        line=dict(width=2, dash="dash", color="black"),
+        name="ssnv_skew * 1"
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=[SSNV_skew * 2, SSNV_skew * 2],
+        y=[0, 1],
+        mode="lines",
+        line=dict(width=2, dash="dash", color="black"),
+        name="ssnv_skew * 2"
+    ))
+
+    # Adds SSNV skew line label to figure
+    fig.add_annotation(
+        x=SSNV_skew * 1,
+        y=1.15,
+        text="ssnv_skew * 1",
+        showarrow=False,
+        font=dict(color="black")
     )
 
-    fig.add_vline(
-        x=2, 
-        line=dict(dash='dash', width=2, color="green")
-    )
-
-    # Add vertical lines for skew multiplicities (SSNV_skew*1, SSNV_skew*2)
-    fig.add_vline(
-        x=SSNV_skew * 1, 
-        line=dict(dash='dash', width=2, color='grey')
-    )
-    fig.add_vline(
-        x=SSNV_skew * 2, 
-        line=dict(dash='dash', width=2, color='grey')
+    # Adds SSNV skew line label to figure
+    fig.add_annotation(
+        x=SSNV_skew * 2,
+        y=1.15,
+        text="ssnv_skew*2",
+        showarrow=False,
+        font=dict(color="black")
     )
 
     # Update layout for better presentation
@@ -849,11 +861,13 @@ def gen_multiplicity_plot(
         xaxis_range=[0, mult_xlim],
         yaxis_range=[0, 1.2],  # Assuming density values are normalized to 1
         xaxis_title="SSNV Multiplicity",
+        template="plotly_white",
         yaxis_title="Density",
         legend_title="Density Curves"
     )
 
     fig.show()
+    fig.update_layout(showlegend=False)
 
     return fig, debugging_value
 
@@ -888,29 +902,29 @@ def draw_mut_multiplicity_densities(mut_pr,
                 grid_dens[i, :] = interp_func(mult_grid)
         
         y_lim = np.nansum(grid_dens, axis=0)
+
         return grid_dens, mult_grid, y_lim
 
     # Subclonal calculation
-    pr_clonal_vector = pr_clonal.to_numpy()
-    # pr_clonal_vector = pr_clonal_vector[~np.isnan(pr_clonal_vector)]
     pr_subclonal = 1 - pr_clonal
-    pr_subclonal_vector= np.clip(1 - pr_clonal, 0, None)
-    # [pr_subclonal_vector < 0] = 0
-
-    # make sure to remove probabilities with nan values!!
+    pr_subclonal_vector = np.clip(1 - pr_clonal, 0, None)
+    pr_subclonal_vector = pr_subclonal.to_numpy()
+    pr_clonal_vector = pr_clonal.to_numpy()
     
     # Get combined densities for clonal and subclonal cases
     clonal_dens, clonal_mult_grid, _ = get_grid_combined_mut_densities(mut_pr, pr_clonal_vector, grid, x_lim)
     subclonal_dens, subclonal_mult_grid, _ = get_grid_combined_mut_densities(mut_pr, pr_subclonal_vector, grid, x_lim)
 
-    
-    pr_subclonal_vector = pr_subclonal.to_numpy()
-    
-
-    # clonal_dens_matrix = clonal_dens.to_numpy()
-
     pr_clonal_vector = np.reshape(pr_clonal_vector, (pr_clonal_vector.shape[0], 1))
     pr_subclonal_vector = np.reshape(pr_subclonal_vector, (pr_subclonal_vector.shape[0], 1))
+
+    # Set NAs to 0 for probability of being clonal or subclonal
+    pr_clonal_vector = np.nan_to_num(pr_clonal_vector)
+    pr_subclonal_vector = np.nan_to_num(pr_subclonal_vector)
+
+    # Set NAs to 0 for clonal and subclonal beta distributions
+    clonal_dens = np.nan_to_num(clonal_dens)
+    sc_dens = np.nan_to_num(subclonal_dens)
 
     fig = go.Figure()
 
@@ -919,7 +933,7 @@ def draw_mut_multiplicity_densities(mut_pr,
         fig.add_trace(go.Scatter(
             # x=clonal_mult_grid,
             x=np.linspace(0, 2.5, len(clonal_dens)), 
-            y=clonal_dens[i, :], #* pr_clonal_vector[i], 
+            y=clonal_dens[i, :] * pr_clonal_vector[i], 
             mode='lines', 
             line=dict(color="blue"),
             name=f"Clonal Sample {i+1}")
@@ -928,15 +942,11 @@ def draw_mut_multiplicity_densities(mut_pr,
         fig.add_trace(go.Scatter(
             # x=subclonal_mult_grid, 
             x=np.linspace(0, 2.5, len(subclonal_dens)),
-            y=subclonal_dens[i, :], # * pr_subclonal_vector[i], 
+            y=subclonal_dens[i, :] * pr_subclonal_vector[i], 
             mode='lines', 
             line=dict(color="grey"),
             name=f"Subclonal Sample {i+1}")
         )
-
-    # Set NAs to 0 for clonal and subclonal densities
-    clonal_dens = np.nan_to_num(clonal_dens)
-    sc_dens = np.nan_to_num(subclonal_dens)
 
     # Draw weighted clonal and subclonal densities
     ncl = np.sum(clonal_dens * pr_clonal_vector, axis=0)
