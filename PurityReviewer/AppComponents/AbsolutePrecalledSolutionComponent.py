@@ -204,18 +204,22 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         ssnv_multiplicity_fig = go.Figure()
         allele_frac_posterior_probability = af_probability_dict['af_post_pr']
         grid_mat = af_probability_dict['grid_mat'] # NEED TO FIGURE OUT WHAT THIS DOES
+
+
+        # ADD A BUTTON THAT WILL GENERATE THE PLOT, TAKES TOO LONG TO GENERATE WITH EVERYTHING ELSE
+            # add one button to generate alternate fraction plot + generate ssnv multiplicity plot
         
         ssnv_multiplicity_fig, debugging = gen_multiplicity_plot(maf_soln, 
                                                     allele_frac_posterior_probability, 
                                                     grid_mat, 
                                                   )
         
-        # # DEBUGGING !!!
-        debugging_value = f"shape: {debugging.shape} values: "
+        # # # DEBUGGING !!!
+        # debugging_value = f"shape: {debugging.shape} values: "
 
-        for val in debugging[:10]:
-            debugging_value = debugging_value + "" + str(val) + ", " 
-        # END OF DEBUGGING!!
+        # for val in debugging[:10]:
+        #     debugging_value = debugging_value + "" + str(val) + ", " 
+        # # END OF DEBUGGING!!
         
         for yval in [1,2]:
             mut_fig_with_lines.add_hline(y=yval,

@@ -799,43 +799,29 @@ def gen_multiplicity_plot(
     # # Prepare the data for plotting
     # # Create a DataFrame for the individual multiplicity densities
     # multiplicity_densities_df = pd.DataFrame(mult_grid.to_numpy(), columns=['Multiplicity'])
+    
+    # draws the individal subclonal and clonal ssnv multiplicity lines!!
+    fig = draw_mut_multiplicity_densities(mult_dens, 
+                                    mult_grid, 
+                                    pr_clonal, 
+                                    pr_cryptic_SCNA, 
+                                    mult_xlim, 
+                                    )
 
-    # for i in range(mult_dens.shape[0]):
-    #     multiplicity_densities_df[f'Individual_{i+1}'] = mult_dens[i, :]
-
-    for i in range(mult_dens.shape[0]):
-        fig.add_trace(go.Scatter(
-                x=np.linspace(0, 2.5, len(mult_dens)), 
-                y=mult_dens[i, :], 
-                mode='lines', 
-                line=dict(color="grey"), 
-                name=f'Individual_{i+1}'  # Optional: Add label for each line
-            ))
-
-
-    # Plot using Plotly Express for individual densities
-    # fig = px.line(
-    #     multiplicity_densities_df, 
-    #     x='Multiplicity', 
-    #     y=multiplicity_densities_df.columns[1:], 
-    #     labels={'Multiplicity': 'SSNV Multiplicity', 'value': 'Density'},
-    #     title="SSNV Multiplicity Densities"
-    # )
     # debugging_value = mult_dens
 
     # Add total density curve if requested
-    # if True:
     total_density = np.sum(mult_dens, axis=0) / np.max(np.sum(mult_dens, axis=0))  # normalized sum of densities across individuals
     debugging_value = total_density
     
-    fig.add_trace(go.Scatter(
-        # x=mult_grid, 
-        x=np.linspace(0, 2.5, len(total_density)),
-        y=total_density, 
-        mode='lines', 
-        name='Total Density', 
-        line=dict(color='purple', width=2)
-    ))
+    # fig.add_trace(go.Scatter(
+    #     # x=mult_grid, 
+    #     x=np.linspace(0, 2.5, len(total_density)),
+    #     y=total_density, 
+    #     mode='lines', 
+    #     name='Total Density', 
+    #     line=dict(color='purple', width=2)
+    # ))
 
     # Add vertical lines for integer multiplicities (v=1, v=2)
     fig.add_vline(
@@ -871,37 +857,11 @@ def gen_multiplicity_plot(
 
     return fig, debugging_value
 
-def classify_somatic_variants(prs, pr_thresh):
-    # Create boolean arrays based on threshold condition
-    subclonal_ix = prs["Pr_subclonal"] > pr_thresh
-    subclonal_wt0_ix = prs["Pr_subclonal_wt0"] > pr_thresh
-    clonal_ix = prs["Pr_somatic_clonal"] > pr_thresh
-    wt0_ix = prs["Pr_wt0"] > pr_thresh
-    ge2_ix = prs["Pr_ge2"] > pr_thresh
-
-    # Additional classifications based on conditions
-    clonal_het_ix = prs["Pr_somatic_clonal"] * (1 - prs["Pr_wt0"]) > pr_thresh
-    homozygous_ix = prs[["Pr_wt0", "Pr_subclonal_wt0"]].sum(axis=1) > pr_thresh
-
-    # Combine results into a DataFrame
-    result = pd.DataFrame({
-        "subclonal_ix": subclonal_ix,
-        "subclonal_wt0_ix": subclonal_wt0_ix,
-        "clonal_ix": clonal_ix,
-        "wt0_ix": wt0_ix,
-        "clonal_het_ix": clonal_het_ix,
-        "ge2_ix": ge2_ix,
-        "homozygous_ix": homozygous_ix
-    })
-
-    return result
-
 def draw_mut_multiplicity_densities(mut_pr, 
                                     grid, 
                                     pr_clonal, 
                                     pr_cryptic_SCNA, 
-                                    x_lim, xlab, 
-                                    cols, 
+                                    x_lim, 
                                     ):
     
     def get_grid_combined_mut_densities(
@@ -931,70 +891,80 @@ def draw_mut_multiplicity_densities(mut_pr,
         return grid_dens, mult_grid, y_lim
 
     # Subclonal calculation
-    pr_subclonal = np.clip(1 - pr_clonal, 0, None)
-    
-    # # Define color palette based on input
-    # colpal = px.colors.sequential.Plasma  # Using Plotly's color palette
-    # color_range = (0, 1)
-    # pal_idx = np.floor(((pr_clonal - color_range[0]) / (color_range[1] - color_range[0])) * (len(colpal) - 1)).astype(int)
-    # mut_colors = [colpal[idx] for idx in pal_idx]
-    
-    # # Handle cryptic SCNA
-    # ix = pr_cryptic_SCNA > 0.5
-    # for i in ix:
-    #     mut_colors[i] = 'mediumorchid2'
+    pr_clonal_vector = pr_clonal.to_numpy()
+    # pr_clonal_vector = pr_clonal_vector[~np.isnan(pr_clonal_vector)]
+    pr_subclonal = 1 - pr_clonal
+    pr_subclonal_vector= np.clip(1 - pr_clonal, 0, None)
+    # [pr_subclonal_vector < 0] = 0
+
+    # make sure to remove probabilities with nan values!!
     
     # Get combined densities for clonal and subclonal cases
-    clonal_dens, clonal_mult_grid, _ = get_grid_combined_mut_densities(mut_pr, pr_clonal, grid, x_lim)
-    subclonal_dens, subclonal_mult_grid, _ = get_grid_combined_mut_densities(mut_pr, pr_subclonal, grid, x_lim)
+    clonal_dens, clonal_mult_grid, _ = get_grid_combined_mut_densities(mut_pr, pr_clonal_vector, grid, x_lim)
+    subclonal_dens, subclonal_mult_grid, _ = get_grid_combined_mut_densities(mut_pr, pr_subclonal_vector, grid, x_lim)
+
+    
+    pr_subclonal_vector = pr_subclonal.to_numpy()
+    
+
+    # clonal_dens_matrix = clonal_dens.to_numpy()
+
+    pr_clonal_vector = np.reshape(pr_clonal_vector, (pr_clonal_vector.shape[0], 1))
+    pr_subclonal_vector = np.reshape(pr_subclonal_vector, (pr_subclonal_vector.shape[0], 1))
 
     fig = go.Figure()
 
-    # Draw individual mutation densities if required
-    if True:
-        for i in range(mut_pr.shape[0]):
-            fig.add_trace(go.Scatter(
-                x=clonal_mult_grid, 
-                y=clonal_dens[i, :], 
-                mode='lines', 
-                line=dict(color="blue"))
-            )
-        for i in range(mut_pr.shape[0]):
-            fig.add_trace(go.Scatter(
-                x=subclonal_mult_grid, 
-                y=subclonal_dens[i, :], 
-                mode='lines', 
-                line=dict(color="grey"))
-            )
+    # Draw individual subclonal and clonal mutation densities
+    for i in range(mut_pr.shape[0]):
+        fig.add_trace(go.Scatter(
+            # x=clonal_mult_grid,
+            x=np.linspace(0, 2.5, len(clonal_dens)), 
+            y=clonal_dens[i, :], #* pr_clonal_vector[i], 
+            mode='lines', 
+            line=dict(color="blue"),
+            name=f"Clonal Sample {i+1}")
+        )
+    
+        fig.add_trace(go.Scatter(
+            # x=subclonal_mult_grid, 
+            x=np.linspace(0, 2.5, len(subclonal_dens)),
+            y=subclonal_dens[i, :], # * pr_subclonal_vector[i], 
+            mode='lines', 
+            line=dict(color="grey"),
+            name=f"Subclonal Sample {i+1}")
+        )
 
     # Set NAs to 0 for clonal and subclonal densities
     clonal_dens = np.nan_to_num(clonal_dens)
     sc_dens = np.nan_to_num(subclonal_dens)
 
-    # Draw total clonal and subclonal densities
-    if True:
-        ncl = np.sum(clonal_dens * pr_clonal, axis=0)
-        nsbcl = np.sum(sc_dens * pr_subclonal, axis=0)
+    # Draw weighted clonal and subclonal densities
+    ncl = np.sum(clonal_dens * pr_clonal_vector, axis=0)
+    nsbcl = np.sum(sc_dens * pr_subclonal_vector, axis=0)
 
-        fig.add_trace(go.Scatter(
-            x=clonal_mult_grid, 
-            y=ncl / np.max(ncl), 
-            mode='lines', 
-            line=dict(color=cols[1], dash='dash'), name='Clonal')
-        )
-        fig.add_trace(go.Scatter(
-            x=clonal_mult_grid, 
-            y=nsbcl / np.max(nsbcl), 
-            mode='lines', 
-            line=dict(color=cols[0], dash='dash'), name='Subclonal')
-        )
+    fig.add_trace(go.Scatter(
+        # x=clonal_mult_grid,
+        x=np.linspace(0, 2.5, len(ncl)), 
+        y=ncl / np.max(ncl), 
+        mode='lines', 
+        line=dict(color="blue", dash='dash'), 
+        name='Weighted Clonal')
+    )
+    fig.add_trace(go.Scatter(
+        # x=clonal_mult_grid, 
+        x = np.linspace(0, 2.5, len(nsbcl)),
+        y=nsbcl / np.max(nsbcl), 
+        mode='lines', 
+        line=dict(color="grey", dash='dash'), 
+        name='Weighted Subclonal')
+    )
 
     fig.update_layout(
         title="Mutation Multiplicity Densities",
-        xaxis_title=xlab,
+        xaxis_title="SSNV multiplicity",
         yaxis_title="Density",
         xaxis=dict(range=[0, x_lim]),
-        showlegend=True
+        # showlegend=True
     )
 
     return fig
