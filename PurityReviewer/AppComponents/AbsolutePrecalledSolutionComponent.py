@@ -12,7 +12,7 @@ from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, mut_allele_fraction_plot, gen_multiplicity_plot
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, Mut_AF_plot, multiplicity_plot #, mut_allele_fraction_plot, gen_multiplicity_plot
 #gen_allele_fraction_figure
 
 from rpy2.robjects import r, pandas2ri
@@ -196,23 +196,32 @@ def gen_absolute_solutions_report_range_of_precalled_component(
 
         mut_fig = gen_mut_figure(maf_soln, hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
         mut_fig_with_lines = go.Figure(mut_fig)
+        SSNV_cols =["blue", "grey"]
         
         # {"af_post_pr": allele_frac_post_probability, "grid_mat": grid_mat}
-        allele_fraction_fig, af_probability_dict = mut_allele_fraction_plot(maf_soln) 
+        allele_fraction_fig, af_probability_dict = Mut_AF_plot(maf_soln, SSNV_cols, 
+                                                               mode_color="black", draw_indv=True) # mut_allele_fraction_plot(maf_soln) 
 
         
         ssnv_multiplicity_fig = go.Figure()
         allele_frac_posterior_probability = af_probability_dict['af_post_pr']
         grid_mat = af_probability_dict['grid_mat'] # NEED TO FIGURE OUT WHAT THIS DOES
 
+        seg_dat = pd.DataFrame()
+
+
 
         # ADD A BUTTON THAT WILL GENERATE THE PLOT, TAKES TOO LONG TO GENERATE WITH EVERYTHING ELSE
             # add one button to generate alternate fraction plot + generate ssnv multiplicity plot
         
-        ssnv_multiplicity_fig, debugging = gen_multiplicity_plot(maf_soln, 
-                                                    allele_frac_posterior_probability, 
-                                                    grid_mat, 
-                                                  )
+        ssnv_multiplicity_fig, debugging = multiplicity_plot(seg_dat, maf_soln, allele_frac_posterior_probability, 
+                                                             grid_mat, SSNV_cols, mode_color=[""], 
+                                                             draw_indv=True, verbose=False)
+        
+                                                # gen_multiplicity_plot(maf_soln, 
+                                                #     allele_frac_posterior_probability, 
+                                                #     grid_mat, 
+                                                #   )
         
         # # # DEBUGGING !!!
         # debugging_value = f"shape: {debugging.shape} values: "
