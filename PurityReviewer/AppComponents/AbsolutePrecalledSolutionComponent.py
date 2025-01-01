@@ -209,19 +209,14 @@ def gen_absolute_solutions_report_range_of_precalled_component(
 
         seg_dat = pd.DataFrame()
 
-
-
         # ADD A BUTTON THAT WILL GENERATE THE PLOT, TAKES TOO LONG TO GENERATE WITH EVERYTHING ELSE
             # add one button to generate alternate fraction plot + generate ssnv multiplicity plot
         
         ssnv_multiplicity_fig, debugging = multiplicity_plot(seg_dat, maf_soln, allele_frac_posterior_probability, 
-                                                             grid_mat, SSNV_cols, mode_color=[""], 
+                                                             grid_mat, SSNV_cols, mode_color=["blue"], 
                                                              draw_indv=True, verbose=False)
         
-                                                # gen_multiplicity_plot(maf_soln, 
-                                                #     allele_frac_posterior_probability, 
-                                                #     grid_mat, 
-                                                #   )
+                        
         
         # # # DEBUGGING !!!
         # debugging_value = f"shape: {debugging.shape} values: "
@@ -457,10 +452,10 @@ def gen_absolute_precalled_solution_report_layout():
                         dcc.Graph(id='cnp-graph', figure={}),
                         dcc.Graph(id='mut-graph', figure={}),
                         # allele fraction graph
-                        dbc.Label("LOCATION OF THE ALLELE FRACTION GRAPH"),
+
+                        # PUT INTO TWO COLUMNS!!
                         dcc.Graph(id='allele-fraction-graph', figure={}),
                         # multiplicity graph
-                        dbc.Label("LOCATION OF THE MULTIPLICITY GRAPH"),
                         dcc.Graph(id='ssnv-multiplicity-graph', figure={}),
                     ]
                 )

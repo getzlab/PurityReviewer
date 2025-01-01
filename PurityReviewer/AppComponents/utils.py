@@ -482,6 +482,318 @@ def add_precalled_purities_to_pairs(pairs_df, sample_df, precalled_purity_col_nm
 
     return pairs_with_precalled_purity_df
 
+# def calculate_mutation_beta_densities(
+#                                     mutation_df,
+#                                     alt_count_col='alt', 
+#                                     ref_count_col='ref',
+#                                     n_grid=100
+#                                     ):
+#     """
+#     Calculate the mutation beta distribution for the mutation read
+
+#     Parameters
+#     ==========
+#     mutation_df: pd.Dataframe
+#         mutation dataframe
+
+#     alt_count_col: str
+#         the name of the alternate read count column
+
+#     ref_count_col: str
+#         the name of the reference read count column
+
+#     n_grid: int
+#         the number of columns for the mutation matrix
+
+#     Return
+#     ======
+#     2D array 
+#         array of the beta distribution for each sample
+#     """
+#     # Initialize the mutation grid
+#     beta_distribution_matrix = np.zeros((mutation_df.shape[0], n_grid))
+    
+#     total_mutation_reads = mutation_df[alt_count_col] + mutation_df[ref_count_col]    
+    
+#     # Generate the grid values
+#     normalized_array = np.arange(1, n_grid + 1) / (n_grid + 1) # a normalized array of values from 0 to 1
+    
+#     # Calculate the Beta densities for each sample
+#     for i in range(mutation_df.shape[0]):
+        
+#         beta_distribution_matrix[i, :] = beta.pdf(normalized_array, 
+#                                          mutation_df[alt_count_col][i] + 1,
+#                                          mutation_df[ref_count_col][i] + 1  # num of ref count mutations + 1 = total count of mutations - num of alt count mutations + 1
+#                                         ) / n_grid # makes the distribution between 0 and 1
+    
+#     # Check for NaN values (rows with NaN values)
+#     bad_rows = np.any(np.isnan(beta_distribution_matrix), axis=1)
+
+#     if np.any(bad_rows):
+#         raise ValueError("NaN values detected in the grid")
+    
+#     return beta_distribution_matrix
+
+# def draw_mut_beta_densities(
+#                             beta_grid, 
+#                             probability_clonal, 
+#                             ):
+#     """
+#     Creates the figure with the individual clonal and subclonal beta distribution lines, and the 
+#         weight clonal and subclonal dashed lines for the fraction alternate read plot and returns it
+
+#     Parameters
+#     ==========
+#     beta_grid: array
+#         2D array of the allele fraction posterior probability
+    
+#     probability_clonal: array
+#         1D array of the probability of a given sample being clonal
+    
+#     Return
+#     ======
+#     go.Figure
+#         a figure with the individual clonal and subclonal lines and the dashed clonal and subclonal lines
+#     """
+#     beta_grid = beta_grid.copy()
+
+#     indices_to_remove = np.isnan(probability_clonal)
+#     probability_clonal_cleaned = probability_clonal[~indices_to_remove]
+    
+#     probability_subclonal_cleaned = 1 - probability_clonal_cleaned
+#     # probability_subclonal = 1 - probability_clonal
+#     probability_subclonal_cleaned[probability_subclonal_cleaned < 0] = 0  # Handling round-off error
+#     beta_grid_cleaned = beta_grid[~indices_to_remove] # removes nan values from the beta distribution matrix
+    
+#     # Initialize figure
+#     fig = go.Figure()
+    
+#     # initializes clonal and subclonal weighted grids
+#     clonal_grid = np.zeros_like(beta_grid)
+#     subclonal_grid = np.zeros_like(beta_grid)
+
+#     # TRY TO IMPROVE THE SPEED OF THIS BY USING * INSTEAD OF FOR LOOP!!!
+#     # probability_clonal_vector = probability_clonal_cleaned.to_numpy()
+#     # probability_subclonal_vector = probability_subclonal_cleaned.to_numpy()
+#     # probability_subclonal_vector = np.reshape(probability_subclonal_vector, (probability_subclonal_vector.shape[0], 1))
+#     # probability_clonal_vector = np.reshape(probability_clonal_vector, (probability_clonal_vector.shape[0], 1))
+    
+#     # subclonal_grid = beta_grid_cleaned * probability_subclonal_vector
+#     # clonal_grid  = beta_grid_cleaned * probability_clonal_vector
+
+#     for i in range(beta_grid_cleaned.shape[0]):
+#         clonal_grid[i, :] = beta_grid_cleaned[i, :] * probability_clonal_cleaned[i]
+#         subclonal_grid[i, :] = beta_grid_cleaned[i, :] * probability_subclonal_cleaned[i] 
+
+#     # Plot individual densities
+#     for i in range(beta_grid.shape[0]):
+#         fig.add_trace(go.Scatter(
+#             x=np.linspace(0, 1, len(clonal_grid)), 
+#             y=clonal_grid[i, :], 
+#             mode='lines', 
+#             line=dict(color="blue"), 
+#             name=f'Clonal Sample {i+1}'  # Optional: Add label for each line
+#         ))
+
+#         fig.add_trace(go.Scatter(
+#             x=np.linspace(0, 1, len(subclonal_grid)), 
+#             y=subclonal_grid[i, :], 
+#             mode='lines', 
+#             line=dict(color="grey"), 
+#             name=f'Subclonal Sample {i+1}'  # Optional: Add label for each line
+#         ))
+    
+#     # # Draw weighted clonal and subclonal densities
+#     # ncl = np.sum(clonal_dens * pr_clonal_vector, axis=0)
+#     # nsbcl = np.sum(sc_dens * pr_subclonal_vector, axis=0)
+
+#     # Plots the total weighted densities
+#     fig.add_trace(go.Scatter(
+#         x= np.linspace(0, 1, subclonal_grid.shape[0]),
+#         y= np.sum(subclonal_grid, axis=0) / np.max(np.sum(subclonal_grid, axis=0)),
+#         mode='lines', 
+#         line=dict(color="grey", dash='dash'),  # Dashed line for subclonal
+#         name='Subclonal Weighted'
+#     ))
+#     fig.add_trace(go.Scatter(
+#         x= np.linspace(0, 1, clonal_grid.shape[0]),
+#         y=np.sum(clonal_grid, axis=0) / np.max(np.sum(clonal_grid, axis=0)),
+#         mode='lines', 
+#         line=dict(color="blue", dash='dash'),  # Dashed line for clonal
+#         name='Clonal Weighted'
+#     ))
+      
+#     # Show the plot
+#     fig.show()
+
+#     return fig
+
+# def mut_allele_fraction_plot(
+#                              mutation_df, 
+#                             ):
+#     """
+#     Generates the muation allele fraction plot and returns the figure for the plot
+
+#     Parameters
+#     ==========
+#     mutation_df: pd.Dataframe
+#         the data
+
+#     Return
+#     ======
+#         go.Figure
+    
+#     """
+#     # coverage = mutation_df["alt"] + mutation_df["ref"]
+
+#     # gets the probabilities for subclonal and clonal alternate reads
+#     mode_color="blue"
+#     probability_clonal = mutation_df["Pr_somatic_clonal"]
+#     # pr_cryptic_scna = mutation_df["Pr_cryptic_SCNA"]
+
+#     # gets ssnv skew and purity value
+#     # ssnv_skew = mut_dat.iloc[0]["SSNV_skew"]  
+#     # alpha = mut_dat.iloc[0]["purity"] 
+#     ssnv_skew = np.mean(mutation_df["SSNV_skew"])  
+#     alpha = np.mean(mutation_df["purity"]) 
+
+#     n_grid = 300
+#     allele_frac_post_probability = calculate_mutation_beta_densities(mutation_df, n_grid=n_grid)
+#     normalized_array = np.arange(1, n_grid + 1) / (n_grid + 1) # gets a normalized array of with values between 0 and 1
+#     grid_mat = np.tile(normalized_array, (allele_frac_post_probability.shape[0], 1))
+
+#     # Create the plot using plotly
+#     fig = go.Figure()
+#     fig = draw_mut_beta_densities(allele_frac_post_probability, 
+#                                   probability_clonal, 
+#                                  )
+    
+#     # plots the vertical line for alpha/2 on figure
+#     fig.add_trace(go.Scatter(
+#         x=[alpha / 2, alpha / 2],
+#         y=[0, 1],
+#         mode="lines",
+#         line=dict(width=0.5, dash="dash", color=mode_color),
+#         name='alpha_hat / 2'
+#     ))
+
+#     # Adds alpha/2 label to figure
+#     fig.add_annotation(
+#         x=alpha / 2,
+#         y=1.05,
+#         text="alpha_hat / 2",
+#         showarrow=False,
+#         font=dict(color=mode_color)
+#     )
+
+#     # plots the SSNV skew * alpha / 2 line on the figure
+#     fig.add_trace(go.Scatter(
+#         x=[alpha * ssnv_skew / 2, alpha * ssnv_skew / 2],
+#         y=[0, 1],
+#         mode="lines",
+#         line=dict(width=0.5, dash="dash", color="black"),
+#         name='f_s_hat dot alpha / 2'
+#     ))
+
+#     # Adds SSNV skew line label to figure
+#     fig.add_annotation(
+#         x=alpha * ssnv_skew / 2,
+#         y=1.15,
+#         text="f_s_hat dot alpha_hat / 2",
+#         showarrow=False,
+#         font=dict(color="black")
+#     )
+
+#     # Update layout with titles and axis labels
+#     fig.update_layout(
+#         title="Mutation Allele Frequency (MAF) Plot",
+#         xaxis_title="Fraction of Alternate Reads",
+#         yaxis_title="Density",
+#         template="plotly_white",
+#         showlegend=True,
+#         xaxis=dict(range=[0, 1]),
+#         yaxis=dict(range=[0, 1.2]) # increase the y limit so the skew and purity labels do not get cut off
+#     )
+
+#     # Show the plot
+#     fig.update_layout(showlegend=False)
+#     fig.show()
+
+#     return fig, {"af_post_pr": allele_frac_post_probability, "grid_mat": grid_mat}
+
+# def get_ssnv_on_clonal_cn_multiplicity_densities(
+#                                                  seg_dat, 
+#                                                  mutation_df, 
+#                                                  af_post_pr, 
+#                                                  grid_mat, 
+#                                                  verbose=False
+#                                                  ):
+#     # Remove mutations on HZdels
+#     hz_del_flag = mutation_df["q_hat"] == 0
+#     nix = hz_del_flag
+
+#     # Calculate somatic delta
+#     alpha = mutation_df.iloc[0]["purity"]
+#     Q = mutation_df["q_hat"]
+#     som_delta = alpha / (2 * (1 - alpha) + alpha * Q)
+#     grid_mat_cleaned = grid_mat[~nix, :]
+#     af_post_pr_cleaned = af_post_pr[~nix, :]
+
+#     # Initialize matrices for multiplicity
+#     multiplicity_grid = np.full_like(grid_mat_cleaned, np.nan, dtype=float)
+#     multiplicity_dens = np.full_like(af_post_pr_cleaned, np.nan, dtype=float)
+
+#     # Update multiplicity grids for non-HZ del mutations
+#     # multiplicity_grid[~nix, :] = (grid_mat[~nix, :] / som_delta)
+#     # multiplicity_dens[~nix, :] = (af_post_pr[~nix, :] * som_delta)
+#     som_delta = som_delta.to_numpy()
+#     som_delta_vector = np.reshape(som_delta, (som_delta.shape[0], 1))
+
+#     multiplicity_grid = (grid_mat_cleaned / som_delta_vector)
+#     multiplicity_dens = (af_post_pr_cleaned * som_delta_vector)
+
+#     return {"mult_dens": multiplicity_dens, "mult_grid": multiplicity_grid}
+
+# def gen_multiplicity_plot(
+#                       mutation_df, 
+#                       af_post_pr, 
+#                       grid_mat, 
+#                     ):    
+#     """ 
+    
+#     """
+#     # Filtering data based on conditions (hz.del.ix, SC_CN.ix, alternate read counts of zero)
+#     hz_del_ix = mutation_df["q_hat"] == 0
+#     SC_CN_ix = mutation_df["H1"].notna()  # SSNVs on subclonal SCNAs
+#     nix = hz_del_ix | SC_CN_ix | (mutation_df["alt"] == 0)  # Drop force-called mutations
+    
+#     mutation_df_cleaned = mutation_df[~nix]
+#     af_post_pr_cleaned = af_post_pr[~nix, :]
+#     grid_mat_cleaned = grid_mat[~nix, :]
+
+#     # checks if there are no valid SSNVs to ploit
+#     if len(mutation_df_cleaned) == 0:
+#         # throws an error
+#         raise Exception("No valid SSNVs to plot")
+         
+#     # Get SSNV on clonal CN multiplicity densities
+#     ssnv_multiplicities = get_ssnv_on_clonal_cn_multiplicity_densities(
+#                                                        mutation_df_cleaned, 
+#                                                        af_post_pr_cleaned, 
+#                                                        grid_mat_cleaned, 
+#                                                        )
+
+#     mult_dens = ssnv_multiplicities["mult_dens"]
+#     mult_grid = ssnv_multiplicities["mult_grid"]
+
+#     pr_clonal = mutation_df_cleaned["Pr_somatic_clonal"]
+#     pr_cryptic_SCNA = mutation_df_cleaned["Pr_cryptic_SCNA"]
+#     SSNV_skew = mutation_df_cleaned.iloc[0]["SSNV_skew"]  # Assuming single value for SSNV_skew
+
+#     mult_xlim = 2.5
+
+
+
 def Mut_AF_plot(mut_dat, SSNV_cols, mode_color, draw_indv=True):
     # Calculate coverage
     cov = mut_dat['alt'] + mut_dat['ref']
@@ -517,14 +829,15 @@ def Mut_AF_plot(mut_dat, SSNV_cols, mode_color, draw_indv=True):
         x1=alpha / 2,
         y0=0,
         y1=1,
-        line=dict(color=mode_color, dash='dot', width=2)
+        line=dict(color="green", dash='dot', width=2),
+        name="alpha / 2"
     )
     fig.add_annotation(
         x=alpha / 2,
-        y=1.05,
-        text=r'$\hat{\alpha} / 2$',
+        y=1.15,
+        text='alpha / 2',
         showarrow=False,
-        font=dict(color=mode_color)
+        font=dict(color="black")
     )
 
     fig.add_shape(
@@ -533,23 +846,28 @@ def Mut_AF_plot(mut_dat, SSNV_cols, mode_color, draw_indv=True):
         x1=alpha * SSNV_skew / 2,
         y0=0,
         y1=1,
-        line=dict(color='black', dash='dot', width=2)
+        line=dict(color='grey', dash='dot', width=2),
+        name="alpha * SSNV_skew / 2"
+
     )
     fig.add_annotation(
         x=alpha * SSNV_skew / 2,
         y=1.05,
-        text=r'$\hat{f_s} \times \hat{\alpha} / 2$',
+        text='f_s * alpha / 2',
         showarrow=False,
         font=dict(color='black')
     )
 
+    # NEED TO REDO THE VERTICAL LINES BECAUSE THEY ARE NOT BEING PLOTTED IN THE RIGHT LOCATION!!
+        # JUST REDO THE SSNV MULTIPLICITY VERTICAL LINES, THE ALTERNATE FRACTION READS VERTICAL LINES SEEM FINE!!
+        # SSNV MULTIPLICITY PLOT ONLY HAS TWO VERTICAL LINES AROUND 1 AND 2
     # Update layout
     fig.update_layout(
         title="Mutation Allele Fraction Plot",
         yaxis=dict(title="Density"),
         template="plotly_white",
         xaxis_range=[0, 1],
-        yaxis_range=[0, 1],
+        yaxis_range=[0, 1.2],
         xaxis=dict(
             title="Fraction of Alternate Reads",
             tickvals=[i/10 for i in range(0, 11, 2)],  # Set the tick positions
@@ -661,45 +979,46 @@ def get_SSNV_on_clonal_CN_multiplicity_densities(seg_dat, mut_dat, af_post_pr, g
 
     return {"mult_dens": mult_dens, "mult_grid": mult_grid}
 
-# Function to draw mutation multiplicity densities
-def draw_mut_multiplicity_densities(mult_dens, mult_grid, pr_clonal, pr_cryptic_SCNA, x_lim, cols, xlab, draw_indv, y_lim=1):
-    fig = go.Figure()
+# # Function to draw mutation multiplicity densities
+# def draw_mut_multiplicity_densities(mult_dens, mult_grid, pr_clonal, pr_cryptic_SCNA, x_lim, cols, xlab, draw_indv, y_lim=1.2):
+#     fig = go.Figure()
 
-    # Add individual mutation densities if requested
-    if draw_indv:
-        for i in range(mult_dens.shape[0]):
-            fig.add_trace(go.Scatter(x=mult_grid, y=mult_dens[i, :], mode='lines', line=dict(color=cols[i])))
+#     # Add individual mutation densities if requested
+#     if draw_indv:
+#         for i in range(mult_dens.shape[0]):
+#             fig.add_trace(go.Scatter(x=mult_grid, y=mult_dens[i, :], mode='lines', line=dict(color=cols[0])))
 
-    # Plot the total density
-    total_density = np.nansum(mult_dens * pr_clonal[:, None], axis=0)
-    fig.add_trace(go.Scatter(x=mult_grid, y=total_density / np.max(total_density), mode='lines', 
-                             line=dict(color=cols[1], dash='dash')))
+#     # Plot the total density
+#     total_density = np.nansum(mult_dens * pr_clonal[:, None], axis=0)
+#     fig.add_trace(go.Scatter(x=mult_grid, y=total_density / np.max(total_density), mode='lines', 
+#                              line=dict(color=cols[0], dash='dash')))
 
-    # Adjust layout settings
-    fig.update_layout(
-        title="SSNV Multiplicity Densities",
-        # xaxis_title=xlab,
-        yaxis_title="Density",
-        xaxis=dict(range=[0, x_lim],
-                   title="SSNV Multiplicity",
-                   tickvals=[i/10 for i in range(0, x_lim*10+1, 5) ],  # Set the tick positions
-                   ticktext=[f"{i/10}" for i in range(0, x_lim*10+1, 5)]),  # Set the labels for those tick positions),
-        yaxis=dict(range=[0, y_lim]),
-        template="plotly_white",
-        showlegend=False,
-        width=400,
-    )
+#     # Adjust layout settings
+#     fig.update_layout(
+#         title="SSNV Multiplicity Densities",
+#         # xaxis_title=xlab,
+#         yaxis_title="Density",
+#         xaxis=dict(range=[0, x_lim],
+#                    title="SSNV Multiplicity",
+#                    tickvals=[i/10 for i in range(0, int(x_lim*10)+4, 5) ],  # Set the tick positions
+#                    ticktext=[f"{i/10}" for i in range(0, int(x_lim*10)+4, 5)]),  # Set the labels for those tick positions),
+#         yaxis=dict(range=[0, y_lim]),
+#         template="plotly_white",
+#         showlegend=False,
+#         width=400,
+#     )
 
-    # Highlight integer multiplicities (1 and 2)
-    for v in [1, 2]:
-        fig.add_vline(x=v, line=dict(dash="dash", color="black", width=0.5))
+#     # Highlight integer multiplicities (1 and 2)
+#     for v in [1, 2]:
+#         fig.add_vline(x=v, line=dict(dash="dash", color="black", width=0.5))
 
-    # Highlight skew multiplicities
-    SSNV_skew = 1  # Placeholder, use actual skew from data
-    for v in [SSNV_skew, SSNV_skew * 2]:
-        fig.add_vline(x=v, line=dict(dash="dash", color="red", width=0.5))
+#     # Highlight skew multiplicities
+#     SSNV_skew = 1  # Placeholder, use actual skew from data
+#     for v in [SSNV_skew, SSNV_skew * 2]:
+#         fig.add_vline(x=v, 
+#                       line=dict(dash="dash", color="red", width=0.5))
 
-    return fig
+#     return fig
 
 # Main function to plot multiplicity
 def multiplicity_plot(seg_dat, mut_dat, af_post_pr, grid_mat, SSNV_cols, mode_color, draw_indv, verbose=False):
@@ -707,6 +1026,7 @@ def multiplicity_plot(seg_dat, mut_dat, af_post_pr, grid_mat, SSNV_cols, mode_co
     hz_del_ix = mut_dat["q_hat"] == 0
     SC_CN_ix = mut_dat["H1"].notna()  # SSNVs on subclonal SCNAs
     nix = hz_del_ix | SC_CN_ix | (mut_dat["alt"] == 0)  # Drop forced-called mutations
+    alpha = mut_dat.iloc[0]["purity"] 
 
     # Apply filtering
     mut_dat_filtered = mut_dat[~nix]
@@ -726,7 +1046,7 @@ def multiplicity_plot(seg_dat, mut_dat, af_post_pr, grid_mat, SSNV_cols, mode_co
     # Extract required information from the mutation data
     pr_clonal = mut_dat_filtered["Pr_somatic_clonal"].values
     pr_cryptic_SCNA = mut_dat_filtered["Pr_cryptic_SCNA"].values
-    SSNV_skew = mut_dat_filtered.iloc[0]["SSNV_skew"]  # Assuming skew is a scalar
+    ssnv_skew = mut_dat_filtered.iloc[0]["SSNV_skew"]  # Assuming skew is a scalar
 
     # Plot the densities
     mult_xlim = 2.5
@@ -734,11 +1054,68 @@ def multiplicity_plot(seg_dat, mut_dat, af_post_pr, grid_mat, SSNV_cols, mode_co
         mult_dens, mult_grid, pr_clonal, pr_cryptic_SCNA, x_lim=mult_xlim,
         cols=SSNV_cols, xlab="SSNV multiplicity", draw_indv=draw_indv, y_lim=1
     )
+
+    # # plots the vertical line for alpha/2 on figure
+    # fig.add_trace(go.Scatter(
+    #     x=[alpha / 2, alpha / 2],
+    #     y=[0, 1],
+    #     mode="lines",
+    #     line=dict(width=1, dash="dash", color="green"),
+    #     name='alpha_hat / 2'
+    # ))
+
+    # # Adds alpha/2 label to figure
+    # fig.add_annotation(
+    #     x=alpha / 2,
+    #     y=1.05,
+    #     text="alpha_hat / 2",
+    #     showarrow=False,
+    #     font=dict(color="black")
+    # )
+
+    # # plots the SSNV skew * alpha / 2 line on the figure
+    # fig.add_trace(go.Scatter(
+    #     x=[alpha * ssnv_skew / 2, alpha * ssnv_skew / 2],
+    #     y=[0, 1],
+    #     mode="lines",
+    #     line=dict(width=1, dash="dash", color="grey"),
+    #     name='f_s_hat * alpha / 2'
+    # ))
+
+    # # Adds SSNV skew line label to figure
+    # fig.add_annotation(
+    #     x=alpha * ssnv_skew / 2,
+    #     y=1.15,
+    #     text="f_s_hat * alpha_hat / 2",
+    #     showarrow=False,
+    #     font=dict(color="black")
+    # )
+
+    # plots a vertical line at 2 
+    fig.add_trace(go.Scatter(
+        x=[2, 2],
+        y=[0, 1],
+        mode="lines",
+        line=dict(width=1, dash="dash", color="green"),
+        name='2 vertical line'
+    ))
+
+    # plots a vertical line at 1
+    fig.add_trace(go.Scatter(
+        x=[1, 1],
+        y=[0, 1],
+        mode="lines",
+        line=dict(width=1, dash="dash", color="green"),
+        name='1 vertical line'
+    ))
     debugging_value = ""
 
     return fig, debugging_value
 
 def get_grid_combined_mut_densities(mut_pr, pr_clonal, grid, x_lim):
+    """ 
+    
+    """
     bin_w = x_lim / 100
     breaks = np.arange(0, x_lim, bin_w)
     mult_grid = breaks
@@ -758,21 +1135,11 @@ def get_grid_combined_mut_densities(mut_pr, pr_clonal, grid, x_lim):
 # Function to draw mutation multiplicity densities using Plotly Dash
 def draw_mut_multiplicity_densities(mut_pr, grid, pr_clonal, pr_cryptic_SCNA, x_lim, xlab, cols, 
                                      draw_indv=True, draw_total=True, add=False, y_lim=None):
-    # Pr subclonal calculation
+    """ 
+    """
+    # Probability of being subclonal and clonal
     pr_subclonal = 1 - pr_clonal
     pr_subclonal[pr_subclonal < 0] = 0  # Round-off error handling
-
-    # Generate color palette
-    color_palette = px.colors.sequential.Blues  # Use the palette from Plotly
-    colpal = color_palette[:1000]  # Use the first 1000 colors
-    col_scale = len(colpal)
-    color_range = [0, 1]
-    color_by = pr_clonal
-    pal_idx = np.floor((color_by - color_range[0]) / (color_range[1] - color_range[0]) * (col_scale - 1)).astype(int)
-    # mut_colors = [colpal[i] for i in pal_idx]
-
-    # Apply color adjustment for cryptic SCNA
-    # mut_colors[pr_cryptic_SCNA > 0.5] = "mediumorchid2"
 
     # Get combined mutation densities for clonal and subclonal
     clonal_dens, mult_grid, _ = get_grid_combined_mut_densities(mut_pr, pr_clonal, grid, x_lim)
@@ -792,7 +1159,7 @@ def draw_mut_multiplicity_densities(mut_pr, grid, pr_clonal, pr_cryptic_SCNA, x_
                     tickvals=[i/10 for i in range(0, int(x_lim*10)+4, 5) ],  # Set the tick positions
                     ticktext=[f"{i/10}" for i in range(0,int(x_lim*10)+4, 5)],  # Set the labels for those tick positions),
                     ),
-            yaxis=dict(range=[0, y_lim] if y_lim is not None else [0, np.nanmax(clonal_dens)]),
+            yaxis=dict(range=[0, 1.2]), #) if y_lim is not None else [0, np.nanmax(clonal_dens)]),
             showlegend=False,
             template="plotly_white",
             width=400,
@@ -801,8 +1168,12 @@ def draw_mut_multiplicity_densities(mut_pr, grid, pr_clonal, pr_cryptic_SCNA, x_
     # Add individual lines for each mutation
     if draw_indv:
         for i in range(mut_pr.shape[0]):
-            fig.add_trace(go.Scatter(x=mult_grid, y=clonal_dens[i, :], mode='lines', line=dict(color="blue")))
-                                    #  line=dict(color=mut_colors[i])))
+            fig.add_trace(go.Scatter(
+                x=mult_grid, 
+                y=clonal_dens[i, :], 
+                mode='lines', 
+                line=dict(color="blue"))
+                )
 
     # Set the densities to 0 where they are NaN
     clonal_dens[np.isnan(clonal_dens)] = 0
@@ -816,9 +1187,20 @@ def draw_mut_multiplicity_densities(mut_pr, grid, pr_clonal, pr_cryptic_SCNA, x_
         ncl = np.nansum(clonal_dens * cleaned_pr_clonal, axis=0)
         nsbcl = np.nansum(sc_dens * cleaned_pr_subclonal, axis=0)
 
-        fig.add_trace(go.Scatter(x=mult_grid, y=ncl / np.max(ncl), mode='lines', 
-                                 line=dict(color=cols[1], dash='dash')))
-        fig.add_trace(go.Scatter(x=mult_grid, y=nsbcl / np.max(nsbcl), mode='lines', 
-                                 line=dict(color=cols[0], dash='dash')))
+        fig.add_trace(go.Scatter(
+            x=mult_grid, 
+            y=ncl / np.max(ncl), 
+            mode='lines', 
+            line=dict(color=cols[1], dash='dash'),
+            name="Subclonal Total"
+        ))
+        
+        fig.add_trace(go.Scatter(
+            x=mult_grid, 
+            y=nsbcl / np.max(nsbcl), 
+            mode='lines', 
+            line=dict(color=cols[0], dash='dash'),
+            name="Clonal Total"
+        ))
 
     return fig
