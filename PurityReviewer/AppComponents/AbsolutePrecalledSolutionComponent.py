@@ -12,7 +12,7 @@ from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, Mut_AF_plot, multiplicity_plot #, mut_allele_fraction_plot, gen_multiplicity_plot
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, gen_mut_allele_fraction_plot, multiplicity_plot #, mut_allele_fraction_plot, gen_multiplicity_plot
 #gen_allele_fraction_figure
 
 from rpy2.robjects import r, pandas2ri
@@ -199,9 +199,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         SSNV_cols =["blue", "grey"]
         
         # {"af_post_pr": allele_frac_post_probability, "grid_mat": grid_mat}
-        allele_fraction_fig, af_probability_dict = Mut_AF_plot(maf_soln, SSNV_cols, 
-                                                               mode_color="black", draw_indv=True) # mut_allele_fraction_plot(maf_soln) 
-
+        allele_fraction_fig, af_probability_dict = gen_mut_allele_fraction_plot(maf_soln)
         
         ssnv_multiplicity_fig = go.Figure()
         allele_frac_posterior_probability = af_probability_dict['af_post_pr']
