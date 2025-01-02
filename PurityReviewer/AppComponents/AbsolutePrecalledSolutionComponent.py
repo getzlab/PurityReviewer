@@ -12,7 +12,7 @@ from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, gen_mut_allele_fraction_plot, multiplicity_plot #, mut_allele_fraction_plot, gen_multiplicity_plot
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, gen_mut_allele_fraction_plot, multiplicity_plot #, gen_multiplicity_plot
 #gen_allele_fraction_figure
 
 from rpy2.robjects import r, pandas2ri
@@ -121,9 +121,6 @@ def gen_absolute_solutions_report_range_of_precalled_component(
     int
         Index of the current ABSOLUTE solution. For new data, it is set to the first solution 0
     """  
-    print("inside the newdata callback function")
-    debugging_value = "No Value to Debug!!"
-
     # checks if you are loading in the data for the first time (new data callback)
     if not internal_callback:
         slider_value = 5
@@ -198,30 +195,25 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         mut_fig_with_lines = go.Figure(mut_fig)
         SSNV_cols =["blue", "grey"]
         
-        # {"af_post_pr": allele_frac_post_probability, "grid_mat": grid_mat}
         allele_fraction_fig, af_probability_dict = gen_mut_allele_fraction_plot(maf_soln)
         
         ssnv_multiplicity_fig = go.Figure()
-        allele_frac_posterior_probability = af_probability_dict['af_post_pr']
-        grid_mat = af_probability_dict['grid_mat'] # NEED TO FIGURE OUT WHAT THIS DOES
+        af_beta_distributions = af_probability_dict['af_beta_distributions']
+        normalized_values_matrix = af_probability_dict['normalized_values_matrix'] 
 
         seg_dat = pd.DataFrame()
 
         # ADD A BUTTON THAT WILL GENERATE THE PLOT, TAKES TOO LONG TO GENERATE WITH EVERYTHING ELSE
             # add one button to generate alternate fraction plot + generate ssnv multiplicity plot
         
-        ssnv_multiplicity_fig, debugging = multiplicity_plot(seg_dat, maf_soln, allele_frac_posterior_probability, 
-                                                             grid_mat, SSNV_cols, mode_color=["blue"], 
-                                                             draw_indv=True, verbose=False)
-        
-                        
-        
-        # # # DEBUGGING !!!
-        # debugging_value = f"shape: {debugging.shape} values: "
-
-        # for val in debugging[:10]:
-        #     debugging_value = debugging_value + "" + str(val) + ", " 
-        # # END OF DEBUGGING!!
+        ssnv_multiplicity_fig = multiplicity_plot(seg_dat, 
+                                                  maf_soln, 
+                                                  af_beta_distributions, 
+                                                   normalized_values_matrix, 
+                                                   SSNV_cols, 
+                                                   mode_color=["blue"],          
+                                                    draw_indv=True, 
+                                                verbose=False)
         
         for yval in [1,2]:
             mut_fig_with_lines.add_hline(y=yval,
@@ -238,7 +230,6 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         mut_fig_with_lines,
         allele_fraction_fig,
         ssnv_multiplicity_fig,
-        debugging_value,
         purity,
         ploidy, 
         1 # defaults to having the 1st copy number profile 
@@ -402,16 +393,7 @@ def gen_absolute_precalled_solution_report_layout():
                         ], 
                     ),
 
-                # DEBUGGING ELEMENTS
-                html.Div(
-                    children=[
-                        dbc.Label(children='Debugging Some Stuff', id='debugging-value-1')
-                    ]
-                ),
-
-                # END OF DEBUGGING ELEMENTS!!!
-
-                    # displays the absolute solutions report
+                # displays the absolute solutions report
                 html.Div(
                     children=[
                         html.H2('Absolute Solutions Table'),
@@ -492,7 +474,6 @@ def gen_absolute_precalled_solutions_report_component():
             Output('mut-graph', 'figure'),
             Output('allele-fraction-graph', 'figure'),
             Output('ssnv-multiplicity-graph', 'figure'),
-            Output('debugging-value-1', 'children'), # REMOVE DEBUGGING LATER!!
             Output('absolute-purity', 'children'),
             Output('absolute-ploidy', 'children'),
             Output('absolute-solution-idx', 'children'),

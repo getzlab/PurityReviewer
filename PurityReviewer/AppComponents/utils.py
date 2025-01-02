@@ -499,28 +499,27 @@ def gen_mut_allele_fraction_plot(
             plotly.Figure
                 plot for the allele fraction for each mutation
             
-            Dict("af_post_pr": af_post_pr, "grid_mat": grid_mat)
+            Dict("af_beta_distributions": af_beta_distributions, "normalized_values_matrix": normalized_values_matrix)
                 2D numpy array
                     beta distribution for the allele fraction 
                 2D numpy array
-                    normalized distribution for each mutation
+                    normalized values for each mutation
     """
     clonal_probabilities = maf_df['Pr_somatic_clonal'].values
     ssnv_skew = maf_df['SSNV_skew'].values[0]
     alpha = maf_df['purity'].values[0]
-    ssnv_colors = ["blue", "grey"]
-
+    line_colors = ["blue", "grey"]
     n_grid = 300
     af_beta_distributions = get_mut_beta_densities(maf_df, n_grid)
 
     # Creates a normalized distribition for plotting
-    grid = np.linspace(1, n_grid, n_grid) / (n_grid + 1)
-    grid_mat = np.tile(grid, (af_beta_distributions.shape[0], 1))  # Repeat grid for each mutation
+    normalized_values = np.linspace(1, n_grid, n_grid) / (n_grid + 1)
+    normalized_values_matrix = np.tile(normalized_values, (af_beta_distributions.shape[0], 1))  # Repeat normalized distribution for each mutation
 
     fig = go.Figure()
 
-    # creates a figure with the densities (individual and total subclonal and clonal)
-    fig = draw_mut_beta_densities(af_beta_distributions, clonal_probabilities, ssnv_colors)
+    # creates a figure with the probability distribution (individual and total subclonal and clonal)
+    fig = draw_mut_beta_densities(af_beta_distributions, clonal_probabilities, line_colors)
 
     # Add vertical lines for alpha / 2 and alpha * SSNV_skew / 2
     fig.add_shape(
@@ -573,12 +572,12 @@ def gen_mut_allele_fraction_plot(
         width=400,
     )
 
-    return fig, {"af_post_pr": af_beta_distributions, "grid_mat": grid_mat}
+    return fig, {"af_beta_distributions": af_beta_distributions, "normalized_values_matrix": normalized_values_matrix}
 
 def draw_mut_beta_densities(
         af_beta_distributions, 
         clonal_probabilities, 
-        ssnv_colors
+        line_colors
     ):
     """ 
     Creates the mutation beta densities lines on the plotly figure
@@ -591,7 +590,7 @@ def draw_mut_beta_densities(
     clonal_probabilities: 1D numpy array
         probability of a mutation being clonal
 
-    ssnv_colors: list ["blue", "grey]
+    line_colors: list ["blue", "grey]
         colors for the total clonal and subclonal lines
 
     Return
@@ -600,50 +599,51 @@ def draw_mut_beta_densities(
             plot for the allele fraction for each mutation
     """
     n_grid = af_beta_distributions.shape[1]
-    grid_vals = np.arange(1, n_grid + 1) / (n_grid + 1)  # grid values
+    normalized_values = np.arange(1, n_grid + 1) / (n_grid + 1)  # normalizing based on the number of columns in the beta distributions
     
-    pr_subclonal = 1 - clonal_probabilities
-    pr_subclonal[pr_subclonal < 0] = 0  # Fix round-off error
+    subclonal_probabilities = 1 - clonal_probabilities
+    subclonal_probabilities[subclonal_probabilities < 0] = 0  # Fix round-off error
     
     # Set up the plot
     fig = go.Figure()
 
+    # Plots the allele fraction beta distribution for each mutation
     for i in range(af_beta_distributions.shape[0]):
         fig.add_trace(go.Scatter(
-            x=grid_vals,
+            x=normalized_values,
             y=af_beta_distributions[i, :],
             mode='lines',
             line=dict(color="blue"),
             name=f"Individual {i+1}"  # Label each individual line
         ))
 
-    pr_clonal_vector = np.reshape(clonal_probabilities, (clonal_probabilities.shape[0], 1))
-    pr_subclonal_vector = np.reshape(pr_subclonal, (pr_subclonal.shape[0], 1))
+    clonal_probabilities_vector = np.reshape(clonal_probabilities, (clonal_probabilities.shape[0], 1))
+    subclonal_probabilities_vector = np.reshape(subclonal_probabilities, (subclonal_probabilities.shape[0], 1))
 
-    # turns the nan values to zero
-    pr_clonal_vector = np.nan_to_num(pr_clonal_vector)
-    pr_subclonal_vector = np.nan_to_num(pr_subclonal_vector)
-    beta_grid_cleaned = np.nan_to_num(af_beta_distributions)
+    # changes the nan values to zero
+    clonal_probabilities_vector = np.nan_to_num(clonal_probabilities_vector)
+    subclonal_probabilities_vector = np.nan_to_num(subclonal_probabilities_vector)
+    af_beta_distributions = np.nan_to_num(af_beta_distributions)
 
-    # clonal_grid = beta_grid * pr_clonal[:, np.newaxis]
-    # sc_grid = beta_grid * pr_subclonal[:, np.newaxis]
-    clonal_grid = beta_grid_cleaned * pr_clonal_vector
-    sc_grid = beta_grid_cleaned * pr_subclonal_vector
+    # calculates the clonal and subclonal distributions
+    clonal_distributions = af_beta_distributions * clonal_probabilities_vector
+    subclonal_distributions = af_beta_distributions * subclonal_probabilities_vector
     
+    # Plots the normalized total sum of subclonal distributions
     fig.add_trace(go.Scatter(
-        x=grid_vals,
-        y=np.sum(sc_grid, axis=0) / np.max(np.sum(sc_grid, axis=0)),
+        x=normalized_values,
+        y=np.sum(subclonal_distributions, axis=0) / np.max(np.sum(subclonal_distributions, axis=0)), # normalized sum of each subclonal distribution 
         mode='lines',
-        line=dict(color=ssnv_colors[0], dash='dash'),
+        line=dict(color=line_colors[0], dash='dash'),
         name="Subclonal Total"
     ))
 
-    # Creates dashed lines for the total clonal and subclonal distributions
+    # Plots the normalized total sum of clonal distributions
     fig.add_trace(go.Scatter(
-        x=grid_vals,
-        y=np.sum(clonal_grid, axis=0) / np.max(np.sum(clonal_grid, axis=0)),
+        x=normalized_values,
+        y=np.sum(clonal_distributions, axis=0) / np.max(np.sum(clonal_distributions, axis=0)), # normalized sum of each clonal distribution 
         mode='lines',
-        line=dict(color=ssnv_colors[1], dash='dash'),
+        line=dict(color=line_colors[1], dash='dash'),
         name="Clonal Total"
     ))
     
@@ -681,9 +681,9 @@ def get_mut_beta_densities(
     
     # Calculate beta densities for each mutation
     for i in range(maf_df.shape[0]):
-        a = total_num_reads[i] * af[i] + 1  # Alpha parameter
-        b = total_num_reads[i] * (1 - af[i]) + 1  # Beta parameter
-        mut_grid[i, :] = beta.pdf(grid_vals, a, b) * 1 / n_grid  # Normalize by n_grid
+        a = total_num_reads[i] * af[i] + 1  # Alpha parameter for beta distribution
+        b = total_num_reads[i] * (1 - af[i]) + 1  # Beta parameter for beta distribution
+        mut_grid[i, :] = beta.pdf(grid_vals, a, b) * 1 / n_grid  # calculates and normalizes the beta distribution 
     
     # Check for NaN values
     if np.any(np.isnan(mut_grid)):
@@ -731,7 +731,16 @@ def get_SSNV_on_clonal_CN_multiplicity_densities(
     return {"mult_dens": mult_dens, "mult_grid": mult_grid}
 
 # Main function to plot multiplicity
-def multiplicity_plot(seg_dat, mut_dat, af_post_pr, grid_mat, SSNV_cols, mode_color, draw_indv, verbose=False):
+def multiplicity_plot(
+        seg_dat, 
+        mut_dat, 
+        af_post_pr, 
+        grid_mat, 
+        SSNV_cols, 
+        mode_color, 
+        draw_indv, 
+        verbose=False
+    ):
     # Filter out invalid mutations
     hz_del_ix = mut_dat["q_hat"] == 0
     SC_CN_ix = mut_dat["H1"].notna()  # SSNVs on subclonal SCNAs
@@ -786,9 +795,8 @@ def multiplicity_plot(seg_dat, mut_dat, af_post_pr, grid_mat, SSNV_cols, mode_co
         line=dict(width=3, dash="dash", color="green"),
         name='1 vertical line'
     ))
-    debugging_value = ""
 
-    return fig, debugging_value
+    return fig
 
 def get_grid_combined_mut_densities(mut_pr, pr_clonal, grid, x_lim):
     """ 
