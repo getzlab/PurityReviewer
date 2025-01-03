@@ -26,6 +26,8 @@ CSIZE_DEFAULT = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276,
                  '11': 135006516, '12': 133851895, '13': 115169878, '14': 107349540, '15': 102531392,
                  '16': 90354753, '17': 81195210, '18': 78077248, '19': 59128983, '20': 63025520,
                  '21': 48129895, '22': 51304566, '23': 156040895, '24': 57227415}
+SUBCLONAL_COLOR_IDX = 0
+CLONAL_COLOR_IDX = 1
 
 
 def get_cum_sum_csize(csize):
@@ -634,7 +636,7 @@ def draw_mut_beta_densities(
         x=normalized_values,
         y=np.sum(subclonal_distributions, axis=0) / np.max(np.sum(subclonal_distributions, axis=0)), # normalized sum of each subclonal distribution 
         mode='lines',
-        line=dict(color=line_colors[0], dash='dash'),
+        line=dict(color=line_colors[SUBCLONAL_COLOR_IDX], dash='dash'),
         name="Subclonal Total"
     ))
 
@@ -643,7 +645,7 @@ def draw_mut_beta_densities(
         x=normalized_values,
         y=np.sum(clonal_distributions, axis=0) / np.max(np.sum(clonal_distributions, axis=0)), # normalized sum of each clonal distribution 
         mode='lines',
-        line=dict(color=line_colors[1], dash='dash'),
+        line=dict(color=line_colors[CLONAL_COLOR_IDX], dash='dash'),
         name="Clonal Total"
     ))
     
@@ -712,7 +714,7 @@ def get_SSNV_on_clonal_CN_multiplicity_densities(
     ======
     Dict("mult_probabilities": mult_prob_mat, "mult_normalized_mat": mult_normalized_mat)
         2D numpy array
-            ssnv multiplicity probability distributions for each mutation 
+            ssnv multiplicity values for each mutation 
         2D numpy array
             normalized values for each mutation
     """
@@ -726,7 +728,7 @@ def get_SSNV_on_clonal_CN_multiplicity_densities(
 
     # Initializes empty matrices for mutation grid and densities
     mult_normalized_mat = np.full_like(normalized_values_matrix, np.nan, dtype=float)
-    mult_prob_mat = np.full_like(af_beta_distr, np.nan, dtype=float)
+    mult_val_mat = np.full_like(af_beta_distr, np.nan, dtype=float)
 
     # Removes the mutations on the HZdels
     cleaned_norm_val_mat = normalized_values_matrix[~nix, :]
@@ -736,15 +738,15 @@ def get_SSNV_on_clonal_CN_multiplicity_densities(
 
     # Computes multiplicity probabilities and normalize values for each mutation, excluding mutation on HZdels
     mult_normalized_mat[~nix, :] = (cleaned_norm_val_mat / cleaned_som_delta)  
-    mult_prob_mat[~nix, :] = (cleaned_af_beta_distr * cleaned_som_delta)
+    mult_val_mat[~nix, :] = (cleaned_af_beta_distr * cleaned_som_delta)
 
-    return {"mult_probabilities": mult_prob_mat, "mult_normalized_mat": mult_normalized_mat}
+    return {"ssnv_mult_values": mult_val_mat, "mult_normalized_mat": mult_normalized_mat}
 
 def gen_multiplicity_plot(
         maf_df, 
         af_beta_distr, 
         normalized_values_matrix, 
-        line_colors, 
+        line_colors 
     ):
     """
     Generates the ssnv multiplicty plotly Figure
@@ -768,37 +770,29 @@ def gen_multiplicity_plot(
         ssnv multiplicity plot
     """
     # Gets indices of mutations that need to be filtered out 
-    hz_del_ix = maf_df["q_hat"] == 0
-    SC_CN_ix = maf_df["H1"].notna()  # SSNVs on subclonal SCNAs
-    remove_ixs = hz_del_ix | SC_CN_ix | (maf_df["alt"] == 0)  # Drop forced-called mutations
+    hz_del_idx = maf_df["q_hat"] == 0
+    SC_CN_idx = maf_df["H1"].notna()  # SSNVs on subclonal SCNAs
+    idxs_to_remove = hz_del_idx | SC_CN_idx | (maf_df["alt"] == 0)  # Drop forced-called mutations
 
-    # Removes the mutations on HZdels, ssnvs on subclonal SCNAs or forced-called
-    maf_df_filtered = maf_df[~remove_ixs]
-    af_beta_distr_filtered = af_beta_distr[~remove_ixs]
-    normalized_values_matrix_filtered = normalized_values_matrix[~remove_ixs]
+    # Removes the mutations on HZdels, ssnvs on subclonal SCNAs, or forced-called
+    maf_df_filtered = maf_df[~idxs_to_remove]
+    af_beta_distr_filtered = af_beta_distr[~idxs_to_remove]
+    normalized_values_matrix_filtered = normalized_values_matrix[~idxs_to_remove]
 
-    # raises an error if all mutations are removed
+    # Raises an error if all mutations are removed
     if maf_df_filtered.shape[0] == 0:
         raise Exception("No valid SSNVs to plot")
 
     # Get the multiplicity probability and normalize values for each mutation
     multiplicity_dict = get_SSNV_on_clonal_CN_multiplicity_densities(maf_df_filtered, af_beta_distr_filtered, normalized_values_matrix_filtered)
     
-    mult_pr = multiplicity_dict["mult_probabilities"]
+    ssnv_mult_val = multiplicity_dict["ssnv_mult_values"]
     mult_norm_mat = multiplicity_dict["mult_normalized_mat"]
     pr_clonal = maf_df_filtered["Pr_somatic_clonal"].values
-    mult_xlim = 2.5
+    # mult_x_limit = 2.5
   
     # Plot the ssnv multiplicity probability distributions
-    fig = draw_mut_multiplicity_densities(
-        mult_pr, 
-        mult_norm_mat, 
-        pr_clonal, 
-        x_lim=mult_xlim,
-        cols=line_colors,
-        xlab="SSNV multiplicity", 
-        y_lim=1
-    )
+    fig = draw_mut_multiplicity_densities(ssnv_mult_val, mult_norm_mat, pr_clonal, line_colors)
 
     # plots a vertical line at 2 
     fig.add_trace(go.Scatter(
@@ -820,103 +814,114 @@ def gen_multiplicity_plot(
 
     return fig
 
-def get_grid_combined_mut_densities(mut_pr, pr_clonal, grid, x_lim):
-    """ 
+def calculate_multiplicity_and_normalized_matrix(
+        ssnv_mult_val, 
+        grid, 
+        x_lim
+    ):
+    """
+    Calculates the multiplicity values and the normalized matrix for plotting
+
+    Parameters
+    ==========
+    ssnv_mult_val 
     
     """
     bin_w = x_lim / 100
-    breaks = np.arange(0, x_lim, bin_w)
-    mult_grid = breaks
+    norm_val_mat = np.arange(0, x_lim, bin_w)
+    # mult_grid = breaks
 
-    grid_dens = np.zeros((mut_pr.shape[0], len(mult_grid)))
+    mult_matrix = np.zeros((ssnv_mult_val.shape[0], len(norm_val_mat)))
 
-    for i in range(mut_pr.shape[0]):
+    for i in range(ssnv_mult_val.shape[0]):
         x = grid[i, :]
-        y = mut_pr[i, :]
+        y = ssnv_mult_val[i, :]
+
         if np.sum(~np.isnan(y)) > 2:
             interp_func = interp1d(x, y, kind='linear', bounds_error=False, fill_value=0)
-            grid_dens[i, :] = interp_func(mult_grid)
+            mult_matrix[i, :] = interp_func(norm_val_mat)
 
-    y_lim = np.nansum(grid_dens, axis=0)
-    return grid_dens, mult_grid, y_lim
+    # y_lim = np.nansum(grid_dens, axis=0)
 
-# Function to draw mutation multiplicity densities using Plotly Dash
-def draw_mut_multiplicity_densities(mut_pr, grid, 
-                                    pr_clonal, 
-                                    # pr_cryptic_SCNA, 
-                                    x_lim, 
-                                    xlab, 
-                                    cols, 
-                                    #  draw_indv=True, 
-                                    #  draw_total=True, 
-                                     add=False, 
-                                     y_lim=None
-                                     ):
+    return mult_matrix, norm_val_mat
+
+def draw_mut_multiplicity_densities(
+        ssnv_mult_val, 
+        grid, 
+        pr_clonal,  
+        line_colors, 
+    ):
     """ 
+    Creates a plotly Figure with the mutation ssnv multiplicity values
+
+    Parameters
+    ==========
+
+    Return
+    ======
+
     """
     # Probability of being subclonal and clonal
     pr_subclonal = 1 - pr_clonal
-    pr_subclonal[pr_subclonal < 0] = 0  # Round-off error handling
+    pr_subclonal[pr_subclonal < 0] = 0  # handles round-off error
+    mult_x_lim = 2.5
 
-    # Get combined mutation densities for clonal and subclonal
-    clonal_dens, mult_grid, _ = get_grid_combined_mut_densities(mut_pr, pr_clonal, grid, x_lim)
-    sc_dens, _, _ = get_grid_combined_mut_densities(mut_pr, pr_subclonal, grid, x_lim)
-
+    # Get matrix of the ssnv multiplicity values and the normalized values for plotting for each mutation
+    ssnv_mult_mat, norm_val_mat = calculate_multiplicity_and_normalized_matrix(ssnv_mult_val, grid, mult_x_lim)
+    
     # Initialize the figure
     fig = go.Figure()
+    ssnv_mult_mat_cleaned = np.nan_to_num(ssnv_mult_mat)
 
-    # If not adding to an existing plot, clear the plot area
-    if not add:
-        fig.update_layout(
-            title="Mutation Multiplicity Densities",
-            xaxis_title=xlab,
-            yaxis_title="Density",
-            xaxis=dict(
-                    range=[0, x_lim],
-                    tickvals=[i/10 for i in range(0, int(x_lim*10)+4, 5) ],  # Set the tick positions
-                    ticktext=[f"{i/10}" for i in range(0,int(x_lim*10)+4, 5)],  # Set the labels for those tick positions),
-                    ),
-            yaxis=dict(range=[0, 1.2]), #) if y_lim is not None else [0, np.nanmax(clonal_dens)]),
-            showlegend=False,
-            template="plotly_white",
-            width=400,
-        )
+    fig.update_layout(
+        title="Mutation Multiplicity Densities",
+        xaxis_title="SSNV multiplicity",
+        yaxis_title="Density",
+        xaxis=dict(
+                range=[0, mult_x_lim],
+                tickvals=[i/10 for i in range(0, int(mult_x_lim*10)+4, 5) ],  # Set the tick positions
+                ticktext=[f"{i/10}" for i in range(0,int(mult_x_lim*10)+4, 5)],  # Set the labels for those tick positions),
+                ),
+        yaxis=dict(range=[0, 1.2]),
+        showlegend=False,
+        template="plotly_white",
+        width=400, # reducing the width speeds up figure generation
+    )
 
-    # Add individual lines for each mutation
-    # if draw_indv:
-    for i in range(mut_pr.shape[0]):
+    # Add individual ssnv multiplicity lines for each mutation
+    for i in range(ssnv_mult_val.shape[0]):
         fig.add_trace(go.Scatter(
-            x=mult_grid, 
-            y=clonal_dens[i, :], 
+            x=norm_val_mat, 
+            y=ssnv_mult_mat_cleaned[i, :], 
             mode='lines', 
             line=dict(color="blue"))
-            )
+        )
 
-    # Set the densities to 0 where they are NaN
-    clonal_dens[np.isnan(clonal_dens)] = 0
-    sc_dens[np.isnan(sc_dens)] = 0
+    # Fixes the dimension for the clonal and subclonal probability arrays 
+    pr_clonal_vector = np.reshape(pr_clonal, (pr_clonal.shape[0], 1))
+    pr_subclonal_vector = np.reshape(pr_subclonal, (pr_subclonal.shape[0], 1))
 
-    # Add the total densities if requested
-    # if draw_total:
-    cleaned_pr_clonal = np.reshape(pr_clonal, (pr_clonal.shape[0], 1))
-    cleaned_pr_subclonal = np.reshape(pr_subclonal, (pr_subclonal.shape[0], 1))
+    # changes the nan values to zero
+    pr_clonal_vector = np.nan_to_num(pr_clonal_vector)
+    pr_subclonal_vector = np.nan_to_num(pr_subclonal_vector)
 
-    ncl = np.nansum(clonal_dens * cleaned_pr_clonal, axis=0)
-    nsbcl = np.nansum(sc_dens * cleaned_pr_subclonal, axis=0)
+    # Calculates the the sum of each clonal and subclonal mutation
+    clonal_prob_distr = np.sum(ssnv_mult_mat_cleaned * pr_clonal_vector, axis=0)
+    subclonal_prob_distr = np.sum(ssnv_mult_mat_cleaned * pr_subclonal_vector, axis=0)
 
     fig.add_trace(go.Scatter(
-        x=mult_grid, 
-        y=ncl / np.max(ncl), 
+        x=norm_val_mat, 
+        y=subclonal_prob_distr / np.max(subclonal_prob_distr), # normalizes sum of each subclonal distribution 
         mode='lines', 
-        line=dict(color=cols[1], dash='dash'),
+        line=dict(color=line_colors[SUBCLONAL_COLOR_IDX], dash='dash'),
         name="Subclonal Total"
     ))
     
     fig.add_trace(go.Scatter(
-        x=mult_grid, 
-        y=nsbcl / np.max(nsbcl), 
+        x=norm_val_mat, 
+        y=clonal_prob_distr / np.max(clonal_prob_distr), # normalized sum of each clonal distribution 
         mode='lines', 
-        line=dict(color=cols[0], dash='dash'),
+        line=dict(color=line_colors[CLONAL_COLOR_IDX], dash='dash'),
         name="Clonal Total"
     ))
 
