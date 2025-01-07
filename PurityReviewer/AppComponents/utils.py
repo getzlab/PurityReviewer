@@ -725,7 +725,6 @@ def get_SSNV_on_clonal_CN_multiplicity_densities(
     Q = mut_dat["q_hat"].values
     mut_dat["total_read"] = mut_dat['alt'] + mut_dat['ref']
 
-    # ADD IN THE allele_fraction component to the calculation
     som_delta = ((2 * (1 - alpha) + alpha * Q) / alpha)
     # som_delta = (alpha / (2 * (1 - alpha) + alpha * Q)) 
     # som_delta = (mut_dat['alt'] / mut_dat['total_read']) * (alpha / (2 * (1 - alpha) + alpha * Q))
@@ -802,7 +801,7 @@ def gen_multiplicity_plot(
         x_lim=mult_xlim,
         cols=line_colors,
         xlab="SSNV multiplicity", 
-        y_lim=1
+        # y_lim=1
     )
 
     # plots a vertical line at 2 
@@ -825,73 +824,69 @@ def gen_multiplicity_plot(
 
     return fig
 
-def get_grid_combined_mut_densities(mut_pr, pr_clonal, grid, x_lim):
-    """ 
+# def get_grid_combined_mut_densities(mut_pr, pr_clonal, grid, x_lim):
+#     """ 
     
-    """
-    # bin_w = x_lim / 100
-    mult_grid = np.linspace(0, x_lim, 300) # breaks = np.arange(0, x_lim, bin_w)
-    # mult_grid = breaks
+#     """
+#     # bin_w = x_lim / 100
+#     mult_grid = np.linspace(0, x_lim, 300) # breaks = np.arange(0, x_lim, bin_w)
+#     # mult_grid = breaks
 
-    grid_dens = np.zeros((mut_pr.shape[0], len(mult_grid)))
+#     grid_dens = np.zeros((mut_pr.shape[0], len(mult_grid)))
 
-    for i in range(mut_pr.shape[0]):
-        x = grid[i, :]
-        y = mut_pr[i, :]
+#     for i in range(mut_pr.shape[0]):
+#         x = grid[i, :]
+#         y = mut_pr[i, :]
 
-        if np.sum(~np.isnan(y)) > 2:
-            interp_func = interp1d(x, y, kind='linear', bounds_error=False, fill_value=0)
-            grid_dens[i, :] = interp_func(mult_grid)
+#         if np.sum(~np.isnan(y)) > 2:
+#             interp_func = interp1d(x, y, kind='linear', bounds_error=False, fill_value=0)
+#             grid_dens[i, :] = interp_func(mult_grid)
 
-    y_lim = np.nansum(grid_dens, axis=0)
+#     y_lim = np.nansum(grid_dens, axis=0)
 
-    return grid_dens, mult_grid, y_lim
+#     return grid_dens, mult_grid, y_lim
 
 # Function to draw mutation multiplicity densities using Plotly Dash
-def draw_mut_multiplicity_densities(mut_pr, 
-                                    grid, 
-                                    pr_clonal, 
-                                    # pr_cryptic_SCNA, 
-                                    x_lim, 
-                                    xlab, 
-                                    cols, 
-                                    #  draw_indv=True, 
-                                    #  draw_total=True, 
-                                     add=False, 
-                                     y_lim=None
-                                     ):
+def draw_mut_multiplicity_densities(
+        mut_pr, 
+        grid, 
+        pr_clonal, 
+        x_lim, 
+        xlab, 
+        cols, 
+    ):
     """ 
     """
     # Probability of being subclonal and clonal
     pr_subclonal = 1 - pr_clonal
     pr_subclonal[pr_subclonal < 0] = 0  # Round-off error handling
 
-    # Get combined mutation densities for clonal and subclonal
-    clonal_dens, mult_grid, _ = get_grid_combined_mut_densities(mut_pr, pr_clonal, grid, x_lim)
-    sc_dens, _, _ = get_grid_combined_mut_densities(mut_pr, pr_subclonal, grid, x_lim)
+    # # Get combined mutation densities for clonal and subclonal
+    # clonal_dens, mult_grid, _ = get_grid_combined_mut_densities(mut_pr, pr_clonal, grid, x_lim)
+    # sc_dens, _, _ = get_grid_combined_mut_densities(mut_pr, pr_subclonal, grid, x_lim)
+
+    mult_grid = np.linspace(0, x_lim, 300)
 
     # Initialize the figure
     fig = go.Figure()
 
-    # If not adding to an existing plot, clear the plot area
-    if not add:
-        fig.update_layout(
-            title="Mutation Multiplicity Densities",
-            xaxis_title=xlab,
-            yaxis_title="Density",
-            xaxis=dict(
-                    range=[0, x_lim],
-                    tickvals=[i/10 for i in range(0, int(x_lim*10)+4, 5) ],  # Set the tick positions
-                    ticktext=[f"{i/10}" for i in range(0,int(x_lim*10)+4, 5)],  # Set the labels for those tick positions),
-                    ),
-            yaxis=dict(range=[0, 1.2]), #) if y_lim is not None else [0, np.nanmax(clonal_dens)]),
-            showlegend=False,
-            template="plotly_white",
-            width=400,
-        )
+    # Update the plot title and axis labels
+    fig.update_layout(
+        title="Mutation Multiplicity Densities",
+        xaxis_title=xlab,
+        yaxis_title="Density",
+        xaxis=dict(
+                range=[0, x_lim],
+                tickvals=[i/10 for i in range(0, int(x_lim*10)+4, 5) ],  # Set the tick positions
+                ticktext=[f"{i/10}" for i in range(0,int(x_lim*10)+4, 5)],  # Set the labels for those tick positions),
+                ),
+        yaxis=dict(range=[0, 1.2]), #) if y_lim is not None else [0, np.nanmax(clonal_dens)]),
+        showlegend=False,
+        template="plotly_white",
+        width=400,
+    )
     
     # Add individual lines for each mutation
-    # if draw_indv:
     for i in range(mut_pr.shape[0]):
         fig.add_trace(go.Scatter(
             x=mult_grid, 
@@ -902,36 +897,31 @@ def draw_mut_multiplicity_densities(mut_pr,
 
     # Set the densities to 0 where they are NaN
     cleaned_mult_dens = np.nan_to_num(mut_pr)
-    # cleaned_clonal_dens = np.nan_to_num(clonal_dens)
-    # cleaned_subclonal_dens = np.nan_to_num(sc_dens)
 
     # clonal_dens[np.isnan(clonal_dens)] = 0
     # sc_dens[np.isnan(sc_dens)] = 0
 
-    # Add the total densities if requested
-    # if draw_total:
+    # reshape clonal and subclonal probabilities for future matrix multiplication
     cleaned_pr_clonal = np.reshape(pr_clonal, (pr_clonal.shape[0], 1))
     cleaned_pr_subclonal = np.reshape(pr_subclonal, (pr_subclonal.shape[0], 1))
 
+    # Add the total densities
     ncl = np.nansum(cleaned_mult_dens * cleaned_pr_clonal, axis=0)
     nsbcl = np.nansum(cleaned_mult_dens * cleaned_pr_subclonal, axis=0)
 
-    # ncl = np.nansum(cleaned_clonal_dens * cleaned_pr_clonal, axis=0)
-    # nsbcl = np.nansum(cleaned_subclonal_dens * cleaned_pr_subclonal, axis=0)
+    fig.add_trace(go.Scatter(
+        x=mult_grid, 
+        y=nsbcl / np.max(nsbcl), 
+        mode='lines', 
+        line=dict(color=cols[0], dash='dash'),
+        name="Subclonal Total"
+    ))
 
     fig.add_trace(go.Scatter(
         x=mult_grid, 
         y=ncl / np.max(ncl), 
         mode='lines', 
         line=dict(color=cols[1], dash='dash'),
-        name="Subclonal Total"
-    ))
-    
-    fig.add_trace(go.Scatter(
-        x=mult_grid, 
-        y=nsbcl / np.max(nsbcl), 
-        mode='lines', 
-        line=dict(color=cols[0], dash='dash'),
         name="Clonal Total"
     ))
 
