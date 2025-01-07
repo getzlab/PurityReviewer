@@ -621,6 +621,12 @@ def draw_mut_beta_densities(
     subclonal_probabilities_vector = np.reshape(subclonal_probabilities, (subclonal_probabilities.shape[0], 1))
 
     # changes the nan values to zero
+    # clonal_nan_idxs = np.where(np.isnan(clonal_probabilities_vector))
+    # subclonal_nan_idxs = np.where(np.isnan(subclonal_probabilities_vector))
+    # af_beta_nan_idxs = np.where(np.isnan(af_beta_distributions))
+    # remove_idxs = clonal_nan_idxs |
+
+
     clonal_probabilities_vector = np.nan_to_num(clonal_probabilities_vector)
     subclonal_probabilities_vector = np.nan_to_num(subclonal_probabilities_vector)
     af_beta_distributions = np.nan_to_num(af_beta_distributions)
@@ -693,8 +699,8 @@ def get_mut_beta_densities(
 
 def get_SSNV_on_clonal_CN_multiplicity_densities(
         mut_dat, 
-        af_post_pr, 
-        grid_mat, 
+        af_beta_distr, 
+        normalized_values_matrix, 
     ):
     """
     Calculates the ssnv multiplicity probability distributions
@@ -712,21 +718,26 @@ def get_SSNV_on_clonal_CN_multiplicity_densities(
     """
     # Remove mutations on HZdels
     hz_del_flag = mut_dat["q_hat"] == 0
-    nix = hz_del_flag
+    nix = hz_del_flag 
+    # remove_ixs = hz_del_flag | (mut_dat["alt"] == 0)  # Drop forced-called mutations
 
     alpha = mut_dat.iloc[0]["purity"]  # Assuming purity is stored in the first row
     Q = mut_dat["q_hat"].values
-    som_delta = alpha / (2 * (1 - alpha) + alpha * Q)
-    # som_delta = som_delta * SSNV_skew^-1  # If SSNV_skew is available, apply this adjustment
+    mut_dat["total_read"] = mut_dat['alt'] + mut_dat['ref']
+
+    # ADD IN THE allele_fraction component to the calculation
+    som_delta = ((2 * (1 - alpha) + alpha * Q) / alpha)
+    # som_delta = (alpha / (2 * (1 - alpha) + alpha * Q)) 
+    # som_delta = (mut_dat['alt'] / mut_dat['total_read']) * (alpha / (2 * (1 - alpha) + alpha * Q))
 
     # Initializes empty matrices for mutation grid and densities
     mult_normalized_mat = np.full_like(normalized_values_matrix, np.nan, dtype=float)
     mult_prob_mat = np.full_like(af_beta_distr, np.nan, dtype=float)
 
-    cleaned_grid = grid_mat[~nix, :]
-    cleaned_som = som_delta[~nix]
-    cleaned_som = np.reshape(cleaned_som, (cleaned_som.shape[0], 1))
-    cleaned_af_post = af_post_pr[~nix, :]
+    cleaned_norm_val_mat = normalized_values_matrix[~nix, :]
+    cleaned_som_delta = som_delta[~nix]
+    cleaned_som_delta = np.reshape(cleaned_som_delta, (cleaned_som_delta.shape[0], 1))
+    cleaned_af_beta_distr = af_beta_distr[~nix, :]
 
     # Computes multiplicity probabilities and normalize values for each mutation, excluding mutation on HZdels
     mult_normalized_mat[~nix, :] = (cleaned_norm_val_mat / cleaned_som_delta)  
@@ -818,24 +829,27 @@ def get_grid_combined_mut_densities(mut_pr, pr_clonal, grid, x_lim):
     """ 
     
     """
-    bin_w = x_lim / 100
-    breaks = np.arange(0, x_lim, bin_w)
-    mult_grid = breaks
+    # bin_w = x_lim / 100
+    mult_grid = np.linspace(0, x_lim, 300) # breaks = np.arange(0, x_lim, bin_w)
+    # mult_grid = breaks
 
     grid_dens = np.zeros((mut_pr.shape[0], len(mult_grid)))
 
     for i in range(mut_pr.shape[0]):
         x = grid[i, :]
         y = mut_pr[i, :]
+
         if np.sum(~np.isnan(y)) > 2:
             interp_func = interp1d(x, y, kind='linear', bounds_error=False, fill_value=0)
             grid_dens[i, :] = interp_func(mult_grid)
 
     y_lim = np.nansum(grid_dens, axis=0)
+
     return grid_dens, mult_grid, y_lim
 
 # Function to draw mutation multiplicity densities using Plotly Dash
-def draw_mut_multiplicity_densities(mut_pr, grid, 
+def draw_mut_multiplicity_densities(mut_pr, 
+                                    grid, 
                                     pr_clonal, 
                                     # pr_cryptic_SCNA, 
                                     x_lim, 
@@ -875,28 +889,35 @@ def draw_mut_multiplicity_densities(mut_pr, grid,
             template="plotly_white",
             width=400,
         )
-
+    
     # Add individual lines for each mutation
     # if draw_indv:
     for i in range(mut_pr.shape[0]):
         fig.add_trace(go.Scatter(
             x=mult_grid, 
-            y=clonal_dens[i, :], 
+            y=mut_pr[i, :], #clonal_dens[i, :], 
             mode='lines', 
             line=dict(color="blue"))
             )
 
     # Set the densities to 0 where they are NaN
-    clonal_dens[np.isnan(clonal_dens)] = 0
-    sc_dens[np.isnan(sc_dens)] = 0
+    cleaned_mult_dens = np.nan_to_num(mut_pr)
+    # cleaned_clonal_dens = np.nan_to_num(clonal_dens)
+    # cleaned_subclonal_dens = np.nan_to_num(sc_dens)
+
+    # clonal_dens[np.isnan(clonal_dens)] = 0
+    # sc_dens[np.isnan(sc_dens)] = 0
 
     # Add the total densities if requested
     # if draw_total:
     cleaned_pr_clonal = np.reshape(pr_clonal, (pr_clonal.shape[0], 1))
     cleaned_pr_subclonal = np.reshape(pr_subclonal, (pr_subclonal.shape[0], 1))
 
-    ncl = np.nansum(clonal_dens * cleaned_pr_clonal, axis=0)
-    nsbcl = np.nansum(sc_dens * cleaned_pr_subclonal, axis=0)
+    ncl = np.nansum(cleaned_mult_dens * cleaned_pr_clonal, axis=0)
+    nsbcl = np.nansum(cleaned_mult_dens * cleaned_pr_subclonal, axis=0)
+
+    # ncl = np.nansum(cleaned_clonal_dens * cleaned_pr_clonal, axis=0)
+    # nsbcl = np.nansum(cleaned_subclonal_dens * cleaned_pr_subclonal, axis=0)
 
     fig.add_trace(go.Scatter(
         x=mult_grid, 
