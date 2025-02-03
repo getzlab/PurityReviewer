@@ -203,11 +203,12 @@ def gen_absolute_solutions_report_range_of_precalled_component(
 
         seg_dat = pd.DataFrame()
 
-        # ADD A BUTTON THAT WILL GENERATE THE PLOT, TAKES TOO LONG TO GENERATE WITH EVERYTHING ELSE
-            # add one button to generate alternate fraction plot + generate ssnv multiplicity plot
-        
+        # initially used maf_soln-> pd.Dataframe
+        # try using absolute_rdata_within_range_df (UPDATE: Doesn't work)
+            # need to change the columns names called in the gen_multiplicity_plot function
         ssnv_multiplicity_fig = gen_multiplicity_plot(
                                                   maf_soln, 
+                                                # absolute_rdata_within_range_df,
                                                   af_beta_distributions, 
                                                    normalized_values_matrix, 
                                                    SSNV_cols)
