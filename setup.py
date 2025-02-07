@@ -30,10 +30,9 @@ setuptools.setup(
                         'setuptools>=70.0.0', # security vulnerability with versions up to 69.1.1 
                         'natsort',
                         'rpy2==3.4.2',
-                        'firecloud-dalmatian',
+                        'firecloud-dalmatian==0.0.18',
                         'cnv_suite',
                         'numpy==1.26.0',
-                        'firecloud-dalmatian',
                         'jupyter'
                        ]
 )   
