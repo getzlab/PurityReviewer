@@ -8,4 +8,7 @@ __pychache__
 *precaled_purity_venv*
 *__pycache__*
 *precalled_purity_reviewer_output*
+.DS_Store
+.vscode/
+*venv/
 
