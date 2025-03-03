@@ -467,6 +467,10 @@ def download_rdata(rdata_fn_s, rdata_dir, force_download=False):
 
         local_rdata_dict[pair_id] = local_absolute_rdata_fn
 
+    print("inside the download_rdata file")
+    print("length of the local_rdata_dict: ", len(pd.Series(local_rdata_dict)))
+    print("t")
+
     return pd.Series(local_rdata_dict)
 
 def add_precalled_purities_to_pairs(pairs_df, sample_df, precalled_purity_col_nm='PCA__ABSOLUTE__Cancer_DNA_fraction'):

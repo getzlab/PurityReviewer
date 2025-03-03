@@ -147,25 +147,13 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         # checks to make sure purity value isn't greater than 100%
         if purity_range_upper > 100:
             purity_range_upper = 100
-    print("Before parsing the rdata")
+    
+    print("Before parsing the absolute solution")
     # from absolute solutions report component gen_absolute_solutions_report_new_data
     parse_absolute_soln_func = custom_parse_absolute_soln if custom_parse_absolute_soln is not None else parse_absolute_soln
-    print("type of pairs_data_row: ", type(pairs_data_row))
-    print("the data in the rdata_fn_col: ")
-    print(pairs_data_row[rdata_fn_col])
-    print("name ofthe parse funciton: ", parse_absolute_soln)
-    # print(pairs_data_row[rdata_fn_col].head())
-    
-    print("number of rows in the data: ", len(pairs_data_row[rdata_fn_col]))
-
-
-    print("trying to locate the file: ")
-    pandas2ri.activate()
-    r_list_vector = robjects.r['load'] ('./' +pairs_data_row[rdata_fn_col])
-    print("successfully loaded data in!!")
-
 
     try:
+        print("I am now trying to parse the absolute solution")
         absolute_rdata_df,maf,maf_annot_list = parse_absolute_soln_func(pairs_data_row[rdata_fn_col])
     except Exception as e:
         print(e)
@@ -214,35 +202,6 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         
         ssnv_multiplicity_fig = go.Figure()
         af_beta_distributions = af_probability_dict['af_beta_distributions']
-
-        # DEBUGGING SECTION STARTED
-        import pickle 
-
-        with open('debug_af_beta_distr.pickle', 'wb') as f:
-            print_dict = {}
-            print_dict["af_beta_distributions"] = af_beta_distributions
-            pickle.dump(print_dict, f)
-
-        # PRINT OUT THE MULTIPLICITY VALUES FROM maf_soln
-
-        # my code is the same as the absolute code
-        # do not add on skew
-
-        # CHECK and determine the bug
-            # compare the allele_fraction and af_beta_distribution, determine if they diverge
-            # compare the multiplicity values and mult_dens values, determine if they diverge
-            # try to add the ssnv skew to only the multiplicty calculations (might not try this)
-                # ((2 * (1 - alpha) + alpha * Q * SSNV_skew) / (alpha * SSNV_skew))
-            # try to change which percentage of the clonal distributions get displayed, i.e. showing on 90%>= or 99%>=
-
-        # print("Allele Fraction Beta Distribution: ")
-        # print(af_beta_distributions)
-        # print_df = pd.DataFrame(print_dict)
-        # print_df.to_csv("Debugging_allele_fraction_beta_distribution.csv")
-
-        # DEBUGGING SECTION ENDED
-
-
         normalized_values_matrix = af_probability_dict['normalized_values_matrix'] 
 
         seg_dat = pd.DataFrame()
