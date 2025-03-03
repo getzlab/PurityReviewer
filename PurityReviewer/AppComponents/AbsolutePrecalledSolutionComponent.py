@@ -230,7 +230,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         cnp_fig_with_lines, 
         mut_fig_with_lines,
         allele_fraction_fig,
-        ssnv_multiplicity_fig,
+        # ssnv_multiplicity_fig, # hiding the snnv multiplicity plot for now!! 
         purity,
         ploidy, 
         1 # defaults to having the 1st copy number profile 
@@ -442,14 +442,14 @@ def gen_absolute_precalled_solution_report_layout():
                                 ]
                             ),
 
-                            dbc.Col([
-                                    html.Div(
-                                    [
-                                        # multiplicity graph
-                                        dcc.Graph(id='ssnv-multiplicity-graph', figure={}),
-                                    ])
-                                ]
-                            ), 
+                            # dbc.Col([
+                            #         html.Div(
+                            #         [
+                            #             # multiplicity graph
+                            #             dcc.Graph(id='ssnv-multiplicity-graph', figure={}),
+                            #         ])
+                            #     ]
+                            # ), 
                         ]),
                     ]
                 )
@@ -487,7 +487,7 @@ def gen_absolute_precalled_solutions_report_component():
             Output('cnp-graph', 'figure'),
             Output('mut-graph', 'figure'),
             Output('allele-fraction-graph', 'figure'),
-            Output('ssnv-multiplicity-graph', 'figure'),
+            # Output('ssnv-multiplicity-graph', 'figure'),
             Output('absolute-purity', 'children'),
             Output('absolute-ploidy', 'children'),
             Output('absolute-solution-idx', 'children'),

@@ -633,15 +633,16 @@ def draw_mut_beta_densities(
     # MIGHT REMOVE THE INDIVIDUAL LINES BECAUSE THE ABSOLUTE REPORT DOES NOT SHOW THE LINES
         # PUT Y AXIS ON A LOG SCALE (Need a lower bound (10^-5), because some of the beta distributions are really low)
         # MAYBE HAVE AN OPTION OF WHETHER TO DISPLAY THE INDIVIDUAL LINES
-    # Plots the allele fraction beta distribution for each mutation
-    for i in range(af_beta_distributions.shape[0]):
-        fig.add_trace(go.Scatter(
-            x=normalized_values,
-            y=af_beta_distributions[i, :],
-            mode='lines',
-            line=dict(color="blue"),
-            name=f"Individual {i+1}"  # Label each individual line
-        ))
+    
+    # # Plots the allele fraction beta distribution for each mutation
+    # for i in range(af_beta_distributions.shape[0]):
+    #     fig.add_trace(go.Scatter(
+    #         x=normalized_values,
+    #         y=af_beta_distributions[i, :],
+    #         mode='lines',
+    #         line=dict(color="blue"),
+    #         name=f"Individual {i+1}"  # Label each individual line
+    #     ))
 
     clonal_probabilities_vector = np.reshape(clonal_probabilities, (clonal_probabilities.shape[0], 1))
     subclonal_probabilities_vector = np.reshape(subclonal_probabilities, (subclonal_probabilities.shape[0], 1))
@@ -772,16 +773,19 @@ def get_SSNV_on_clonal_CN_multiplicity_densities(
     # som_delta = ( ((2 * (1 - alpha)) + (alpha * Q)) / alpha)
 
     # ABSOLUTE CODE computes som_delta like this
-    som_delta = alpha / (2* (1-alpha) + alpha*Q)
+    # som_delta = alpha / (2* (1-alpha) + alpha*Q) 
+    som_delta = (2* (1-alpha) + alpha*Q) / alpha
+    som_delta_cleaned = np.nan_to_num(som_delta)
     allele_fraction = mut_dat['alt'] / (mut_dat['alt'] + mut_dat['ref'])
+    allele_fraction_cleaned = np.nan_to_num(allele_fraction)
     multiplicity_values = np.array([0 for _ in range(len(allele_fraction))])
 
-    mult_normalized_mat = np.array([0 for _ in range(allele_fraction)])
+    mult_normalized_mat = np.array([0 for _ in range(len(allele_fraction))])
 
     for i in range(len(allele_fraction)):
-        multiplicity_values[i] = allele_fraction[i] * som_delta[i]
+        # multiplicity_values[i] = allele_fraction[i] * som_delta[i]
+        multiplicity_values[i] = allele_fraction_cleaned[i] * som_delta_cleaned[i]
 
-    
 
     # #som_delta = ((2 * (1 - alpha) + alpha * Q) / (alpha * Q))
     # #som_delta = (alpha / (2 * (1 - alpha) + alpha * Q))  # tried this and it didn't work
@@ -1004,10 +1008,13 @@ def draw_mut_multiplicity_densities(
 
     # for the x values scale the np.linspace * linspace and then run np.interp1d
 
+    # mult_dens => multiplicity_values
+    # grid => normalized values
 
     # change the x_limit so it is not 2.5, the multiplicity could be greater than 2.5, look into trying to change this potentially
     # also might need to change the calculation for som_delta
-    subclonal_mult_dens = get_grid_combined_mut_densities(mult_dens, grid, x_lim)
+    # UNCOMMENT THIS LATER
+    # subclonal_mult_dens = get_grid_combined_mut_densities(mult_dens, grid, x_lim)
 
     # Initialize the figure
     fig = go.Figure()
@@ -1027,20 +1034,45 @@ def draw_mut_multiplicity_densities(
         template="plotly_white",
         width=400,
     )
+
+    cleaned_pr_clonal = np.reshape(pr_clonal, (pr_clonal.shape[0], 1))
     
+
+
+    # Adds the normalized total sum of the Subclonal densities to the plot
+    fig.add_trace(go.Scatter(
+        x=mult_dens, 
+        y=cleaned_pr_clonal, 
+        mode='markers', 
+        line=dict(color=line_colors[1], dash='dash'),
+        name="Plotting the multiplicity values"
+    ))
+
+    # # Adds the normalized total sum of the Subclonal densities to the plot
+    # fig.add_trace(go.Scatter(
+    #     x=mult_dens, 
+    #     y=mult_dens*cleaned_pr_clonal, 
+    #     mode='markers', 
+    #     line=dict(color=line_colors[1], dash='dash'),
+    #     name="Plotting the multiplicity values"
+    # ))
+
+    return fig
+
     # NEED TO CHANGE HOW THE SUBCLONAL DENSITIES ARE CALCULATED, NEED TO USE THE LINEAR INTERPOLATION FOR THE SUBCLONAL DENSITIES
     # AND THEN USE THE MULT_DENS FOR THE CLONAL DENSITIES LINES!!, REWRITE R CODE
 
 
-    # Add individual lines for each mutation
-    for i in range(mult_dens.shape[0]):
-        fig.add_trace(go.Scatter(
-            x=mult_grid,  # need to multiply the np.linspace * som_delta
-            # x=grid[i, :],
-            y=mult_dens[i, :],
-            mode='lines', 
-            line=dict(color="blue"))
-            )
+    # RECOMMENDED TO NOT PLOT THE INDIVIDUAL LINES!!!
+    # # Add individual lines for each mutation
+    # for i in range(mult_dens.shape[0]):
+    #     fig.add_trace(go.Scatter(
+    #         x=mult_grid,  # need to multiply the np.linspace * som_delta
+    #         # x=grid[i, :],
+    #         y=mult_dens[i, :],
+    #         mode='lines', 
+    #         line=dict(color="blue"))
+    #         )
 
     # Set the densities to 0 if they are NaN
     # cleaned_mult_dens = np.nan_to_num(mult_dens)
