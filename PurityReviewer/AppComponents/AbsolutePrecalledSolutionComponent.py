@@ -8,22 +8,10 @@ from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 
-from AnnoMate.Data import Data, DataAnnotation
-from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
+from AnnoMate.ReviewDataApp import AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
-from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, gen_mut_allele_fraction_plot, gen_multiplicity_plot
-#gen_allele_fraction_figure
-
-from rpy2.robjects import r, pandas2ri
-import rpy2.robjects as robjects
-import os
-import pickle
-from typing import Union, List, Dict
-import sys
-from cnv_suite import calc_cn_levels
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, gen_mut_allele_fraction_plot
 import pandas as pd
-import numpy as np
 
 PRECALLED_SLIDER_VALUES = ["Use slider", "Select All"]
 absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
@@ -148,12 +136,9 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         if purity_range_upper > 100:
             purity_range_upper = 100
     
-    print("Before parsing the absolute solution")
-    # from absolute solutions report component gen_absolute_solutions_report_new_data
     parse_absolute_soln_func = custom_parse_absolute_soln if custom_parse_absolute_soln is not None else parse_absolute_soln
 
     try:
-        print("I am now trying to parse the absolute solution")
         absolute_rdata_df,maf,maf_annot_list = parse_absolute_soln_func(pairs_data_row[rdata_fn_col])
     except Exception as e:
         print(e)
@@ -196,25 +181,8 @@ def gen_absolute_solutions_report_range_of_precalled_component(
 
         mut_fig = gen_mut_figure(maf_soln, hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
         mut_fig_with_lines = go.Figure(mut_fig)
-        SSNV_cols =["blue", "grey"]
         
-        allele_fraction_fig, af_probability_dict = gen_mut_allele_fraction_plot(maf_soln)
-        
-        ssnv_multiplicity_fig = go.Figure()
-        af_beta_distributions = af_probability_dict['af_beta_distributions']
-        normalized_values_matrix = af_probability_dict['normalized_values_matrix'] 
-
-        seg_dat = pd.DataFrame()
-
-        # initially used maf_soln-> pd.Dataframe
-        # try using absolute_rdata_within_range_df (UPDATE: Doesn't work)
-            # need to change the columns names called in the gen_multiplicity_plot function
-        ssnv_multiplicity_fig = gen_multiplicity_plot(
-                                                  maf_soln, 
-                                                # absolute_rdata_within_range_df,
-                                                  af_beta_distributions, 
-                                                   normalized_values_matrix, 
-                                                   SSNV_cols)
+        allele_fraction_fig, _ = gen_mut_allele_fraction_plot(maf_soln)
         
         for yval in [1,2]:
             mut_fig_with_lines.add_hline(y=yval,
@@ -230,7 +198,6 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         cnp_fig_with_lines, 
         mut_fig_with_lines,
         allele_fraction_fig,
-        # ssnv_multiplicity_fig, # hiding the snnv multiplicity plot for now!! 
         purity,
         ploidy, 
         1 # defaults to having the 1st copy number profile 
@@ -432,7 +399,6 @@ def gen_absolute_precalled_solution_report_layout():
                         dcc.Graph(id='mut-graph', figure={}),
                    
                         dbc.Row([
-
                             dbc.Col([
                                     html.Div(
                                     [
@@ -441,15 +407,6 @@ def gen_absolute_precalled_solution_report_layout():
                                     ])
                                 ]
                             ),
-
-                            # dbc.Col([
-                            #         html.Div(
-                            #         [
-                            #             # multiplicity graph
-                            #             dcc.Graph(id='ssnv-multiplicity-graph', figure={}),
-                            #         ])
-                            #     ]
-                            # ), 
                         ]),
                     ]
                 )
@@ -487,7 +444,6 @@ def gen_absolute_precalled_solutions_report_component():
             Output('cnp-graph', 'figure'),
             Output('mut-graph', 'figure'),
             Output('allele-fraction-graph', 'figure'),
-            # Output('ssnv-multiplicity-graph', 'figure'),
             Output('absolute-purity', 'children'),
             Output('absolute-ploidy', 'children'),
             Output('absolute-solution-idx', 'children'),

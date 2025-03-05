@@ -1,15 +1,12 @@
 *.idea/*
 *.egg-info*
-*__pychache__*
+*__pycache__*
 */data/*
-# __pychache__
 .ipynb_checkpoints
 *local_rdata*
 *precalled_purity_venv*
-# */__pycache__/* 
-# *./AppComponents/__pycache__
 *precalled_purity_reviewer_output*
 example_notebooks/data/review_data.pkl
 *example_notebooks/debug_af_beta_distr.pickle
 example_notebooks/debug_multiplicity.pickle
-/PurityReviewer/PurityReviewer/AppComponents/__pycache__
+example_notebooks/allele_fraction.pickle

@@ -330,7 +330,6 @@ def _gen_cnp_figure_cache(acs_fn,
 
     return cnp_fig
 
-
 def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local path   
     """
     function to convert an rdata file from ABSOLUTE into a pandas dataframe
@@ -345,7 +344,6 @@ def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local pa
     pd.DataFrame
         Pandas dataframe of ABSOLUTE purity/ploidy solutions
     """
-    
     absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
                        'sigma_H', 
                        'theta_Q', 
@@ -353,16 +351,11 @@ def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local pa
                        'SCNA_likelihood', 
                        'Kar_likelihood', 
                        'SSNVs_likelihood']
-    print("Activating pandas2ri in parse_absolute_soln")
     pandas2ri.activate()
-    print("Loading robjects in parse_absolute_soln")
     r_list_vector = robjects.r['load'](rdata_path)
     r_list_vector = robjects.r[r_list_vector[0]]
     r_data_id = r_list_vector.names[0]
-    print("Getting rdatatables in parse_absolute_soln")
     rdata_tables = r_list_vector.rx2(str(r_data_id))
-    
-    print("Getting specific attributes for rdata table in parse_absolute_soln")
     mode_res = rdata_tables.rx2('mode.res')
     mode_tab = mode_res.rx2('mode.tab')
     mod_tab_df = pd.DataFrame(columns=absolute_rdata_cols)
@@ -382,10 +375,6 @@ def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local pa
     # Maf file
     maf_file = rdata_tables.rx2('mut.cn.dat')
     mut_annot_list = mode_res.rx2('modeled.muts')
-    print("Finished loading in the data in parse_absolute_soln")
-    print(type(mod_tab_df))
-    print(type(maf_file))
-    print(type(mut_annot_list))
 
     return mod_tab_df, maf_file, mut_annot_list
 
@@ -395,19 +384,6 @@ def calculate_multiplicity(maf_df, alpha):
 
     # calculates Allele fraction
     allele_fraction = maf_df['alt'] / (maf_df['alt']+maf_df['ref'])
-
-    # DEBUGGING SECTION STARTED
-    import pickle
-    print_dict = {}
-
-    with open('allele_fraction.pickle', 'wb') as f:
-
-        print_dict["allele_fraction"] = allele_fraction
-        pickle.dump(print_dict, f)
-
-    # DEBUGGING SECTION ENDED
-
-    # af = (alpha * multiplicity) / (alpha * q + (1-alpha)*2)
     multiplicities = allele_fraction * (alpha*q_values + (1-alpha)*2) / alpha
 
     return(multiplicities)
@@ -521,7 +497,7 @@ def gen_mut_allele_fraction_plot(
             plotly.Figure
                 plot for the allele fraction for each mutation
             
-            Dict("af_beta_distributions": af_beta_distributions, "normalized_values_matrix": normalized_values_matrix)
+            Dict("af_beta_distributions": allele_fraction_beta_distributions, "normalized_values_matrix": normalized_values_matrix)
                 2D numpy array
                     beta distribution for the allele fraction 
                 2D numpy array
@@ -532,16 +508,15 @@ def gen_mut_allele_fraction_plot(
     alpha = maf_df['purity'].values[0]
     line_colors = ["blue", "grey"]
     n_grid = 300
-    af_beta_distributions = get_mut_beta_densities(maf_df, n_grid)
+    allele_fraction_beta_distributions = get_mut_beta_densities(maf_df, n_grid)
 
     # Creates a normalized distribition for plotting
     normalized_values = np.linspace(1, n_grid, n_grid) / (n_grid + 1)
-    normalized_values_matrix = np.tile(normalized_values, (af_beta_distributions.shape[0], 1))  # Repeat normalized distribution for each mutation
-
-    fig = go.Figure()
-
+    normalized_values_matrix = np.tile(normalized_values, (allele_fraction_beta_distributions.shape[0], 1))  # Repeat normalized distribution for each mutation
+    
     # creates a figure with the probability distribution (individual and total subclonal and clonal)
-    fig = draw_mut_beta_densities(af_beta_distributions, clonal_probabilities, line_colors)
+    fig = go.Figure()
+    fig = draw_mut_beta_densities(allele_fraction_beta_distributions, clonal_probabilities, line_colors)
 
     # Add vertical lines for alpha / 2 and alpha * SSNV_skew / 2
     fig.add_shape(
@@ -594,7 +569,7 @@ def gen_mut_allele_fraction_plot(
         width=400,
     )
 
-    return fig, {"af_beta_distributions": af_beta_distributions, "normalized_values_matrix": normalized_values_matrix}
+    return fig, {"af_beta_distributions": allele_fraction_beta_distributions, "normalized_values_matrix": normalized_values_matrix}
 
 def draw_mut_beta_densities(
         af_beta_distributions, 
@@ -629,30 +604,8 @@ def draw_mut_beta_densities(
     # Set up the plot
     fig = go.Figure()
 
-    
-    # MIGHT REMOVE THE INDIVIDUAL LINES BECAUSE THE ABSOLUTE REPORT DOES NOT SHOW THE LINES
-        # PUT Y AXIS ON A LOG SCALE (Need a lower bound (10^-5), because some of the beta distributions are really low)
-        # MAYBE HAVE AN OPTION OF WHETHER TO DISPLAY THE INDIVIDUAL LINES
-    
-    # # Plots the allele fraction beta distribution for each mutation
-    # for i in range(af_beta_distributions.shape[0]):
-    #     fig.add_trace(go.Scatter(
-    #         x=normalized_values,
-    #         y=af_beta_distributions[i, :],
-    #         mode='lines',
-    #         line=dict(color="blue"),
-    #         name=f"Individual {i+1}"  # Label each individual line
-    #     ))
-
     clonal_probabilities_vector = np.reshape(clonal_probabilities, (clonal_probabilities.shape[0], 1))
     subclonal_probabilities_vector = np.reshape(subclonal_probabilities, (subclonal_probabilities.shape[0], 1))
-
-    # changes the nan values to zero
-    # clonal_nan_idxs = np.where(np.isnan(clonal_probabilities_vector))
-    # subclonal_nan_idxs = np.where(np.isnan(subclonal_probabilities_vector))
-    # af_beta_nan_idxs = np.where(np.isnan(af_beta_distributions))
-    # remove_idxs = clonal_nan_idxs |
-
 
     clonal_probabilities_vector = np.nan_to_num(clonal_probabilities_vector)
     subclonal_probabilities_vector = np.nan_to_num(subclonal_probabilities_vector)
@@ -684,7 +637,7 @@ def draw_mut_beta_densities(
 
 def get_mut_beta_densities(
         maf_df, 
-        n_grid=100
+        n_cols=100
     ):
     """
     Calculates the beta distributions for each mutation
@@ -694,475 +647,29 @@ def get_mut_beta_densities(
     maf_df: pd.DataFrame
         maf mutation data
 
-    n_grid: int
+    n_cols: int
         number of columns in the beta distribution matrix 
 
     Return
     ======
     2D numpy array
-
     """
     # Initialize mutation grid with zeros
-    mut_grid = np.zeros((maf_df.shape[0], n_grid))
+    mut_grid = np.zeros((maf_df.shape[0], n_cols))
     
     # Calculate coverage and allele frequency
     total_num_reads = maf_df["alt"] + maf_df["ref"]
-    af = maf_df["alt"] / total_num_reads
-    
-    # Grid values between 0 and 1
-    grid_vals = np.linspace(0, 1, n_grid)
+    allele_fraction = maf_df["alt"] / total_num_reads
+    uniform_vals = np.linspace(0, 1, n_cols)
     
     # Calculate beta densities for each mutation
     for i in range(maf_df.shape[0]):
-        a = total_num_reads[i] * af[i] + 1  # Alpha parameter for beta distribution
-        
-        
-        # CODE based on the absolute R code CALCULATES b BY DOING
-        # b = total_num_reads[i] * (1- af[i] + 1)  
-
-        # CODE Based on Nick's explaination, KEEP THIS 
-        b = total_num_reads[i] * (1 - af[i]) + 1  # Beta parameter for beta distribution
-        mut_grid[i, :] = beta.pdf(grid_vals, a, b) * 1 / n_grid  # calculates and normalizes the beta distribution 
+        alpha_parameter = total_num_reads[i] * allele_fraction[i] + 1 
+        beta_parameter = total_num_reads[i] * (1 - allele_fraction[i]) + 1
+        mut_grid[i, :] = beta.pdf(uniform_vals, alpha_parameter, beta_parameter) * 1 / n_cols  # calculates and normalizes the beta distribution 
     
     # Check for NaN values
     if np.any(np.isnan(mut_grid)):
         raise ValueError("NaN values detected in the mutation grid")
     
     return mut_grid
-
-def get_SSNV_on_clonal_CN_multiplicity_densities(
-        mut_dat, 
-        af_beta_distr, 
-        normalized_values_matrix, 
-    ):
-    """
-    Calculates the ssnv multiplicity probability distributions
-
-    Parameters
-    ==========
-    mut_dat: pd.Dataframe
-        dataframe with the maf file mutation data, assumes the mutation dataframe already has dropped the forced-called mutations
-
-    af_beta_distr: 2D array
-        allele fraction beta distribution for each mutation, assumes the allele fraction 2D array already has dropped the rows with forced-called mutations
-
-    normalized_values_matrix: 2D array
-        normalized values for each mutation, assumes the normalized values 2D array already has dropped the rows with forced-called mutations
-
-    Return
-    ======
-    Dict("mult_densities": mult_dens, "mult_normalized_mat": mult_normalized_mat)
-        2D numpy array
-            ssnv multiplicity densities for each mutation 
-        2D numpy array
-            normalized values for each mutation
-    """
-    # Assumes the mutations on HZdels have already been removed from data and distribution
-    alpha = mut_dat.iloc[0]["purity"]  # Assuming purity is stored in the first row
-    Q = mut_dat["q_hat"].values # total copy number at a given site
-    
-
-    # TRY CHANGING THE EQUATION TO THIS
-    # CN1 => allelic copy number 1
-    # CN2 => allelic copy number 2
-    # VAF = [m CCF CN1 purity] / [purity (CN1+CN2) + 2 (1-purity) ]
-    # might need to change alpha * Q => (alpha * (Q-CN2))
-    # Q = CN1 + CN2
-    
-    # NEW WAY I TRIED COMPUTING som_delta
-    # som_delta = ( ((2 * (1 - alpha)) + (alpha * Q)) / alpha)
-
-    # ABSOLUTE CODE computes som_delta like this
-    # som_delta = alpha / (2* (1-alpha) + alpha*Q) 
-    som_delta = (2* (1-alpha) + alpha*Q) / alpha
-    som_delta_cleaned = np.nan_to_num(som_delta)
-    allele_fraction = mut_dat['alt'] / (mut_dat['alt'] + mut_dat['ref'])
-    allele_fraction_cleaned = np.nan_to_num(allele_fraction)
-    multiplicity_values = np.array([0 for _ in range(len(allele_fraction))])
-
-    mult_normalized_mat = np.array([0 for _ in range(len(allele_fraction))])
-
-    for i in range(len(allele_fraction)):
-        # multiplicity_values[i] = allele_fraction[i] * som_delta[i]
-        multiplicity_values[i] = allele_fraction_cleaned[i] * som_delta_cleaned[i]
-
-
-    # #som_delta = ((2 * (1 - alpha) + alpha * Q) / (alpha * Q))
-    # #som_delta = (alpha / (2 * (1 - alpha) + alpha * Q))  # tried this and it didn't work
-    # #som_delta = (alpha * Q / (2 * (1 - alpha) + alpha * Q)) # tried this and it didn't work
-
-
-    # som_delta = np.reshape(som_delta, (som_delta.shape[0], 1))
-    # # Initializes empty matrices for mutation grid and densities
-    # mult_normalized_mat = np.full_like(normalized_values_matrix, np.nan, dtype=float)
-    # mult_dens = np.full_like(af_beta_distr, np.nan, dtype=float)
-
-    # # Computes multiplicity probabilities and normalize values for each mutation, excluding mutation on HZdels
-    # # mult_normalized_mat[~remove_idx, :] = (cleaned_norm_val_mat * cleaned_som_delta)  
-    # mult_normalized_mat[:, :] = (normalized_values_matrix / som_delta)  
-
-    # # CHANGE THE WAY MULTIPLICITY IS CALCULATED SO IT IS SIMILAR TO CALCULATE MULTIPLICITY PLOT
-    # # change this to a for loop because it might not be multiplying properly
-    # # mult_dens[~remove_idx, :] = (cleaned_af_beta_distr * cleaned_som_delta)
-    # mult_dens[:, :] = (af_beta_distr * som_delta)
-
-
-    # I TRIED DOING THIS A MONTH AGO
-    # allele_fraction = mut_dat['alt'] / (mut_dat['alt'] + mut_dat['ref'])
-    # multplicity values = allele_fraction * som_delta
-
-    # mult_dens -> y values
-    # mult_normalized_mat -> x values
-        # np.linspace(0, 2.5, 300) / som_delta
-        # np.linspace(0, 2.5, 300)
-    
-    # DEBUGGING SECTION STARTED
-    import pickle
-
-    print_dict = {}
-
-    with open('debug_multiplicity.pickle', 'wb') as f:
-        
-        print_dict["mult_densities"] = multiplicity_values
-        print_dict["mult_normalized_mat"] = mult_normalized_mat
-        pickle.dump(print_dict, f)
-
-    # DEBUGGING SECTION ENDED
-    
-    # print_df = pd.DataFrame(print_dict)
-    # print_df.to_csv("Debugging_ssnv_mult_densities.csv")
-    # print_df2 = pd.DataFrame(print_dict2)
-    # print_df2.to_csv("Debugging_ssnv_mult_densities.csv")
-    
-    # return {"mult_densities": mult_dens, "mult_normalized_mat": mult_normalized_mat}
-    return {"mult_densities": multiplicity_values, "mult_normalized_mat": mult_normalized_mat}
-
-def gen_multiplicity_plot(
-        maf_df, 
-        af_beta_distr, 
-        normalized_values_matrix, 
-        line_colors, 
-    ):
-    """
-    Generates the ssnv multiplicty plotly Figure
-
-    Parameters
-    ==========
-    maf_df: pd.DataFrame
-        dataframe with the maf file mutation data
-
-    af_beta_distr: 2D numpy array
-        allele fraction beta distribution for each mutation
-          
-    normalized_values_matrix: 2D numpy array
-        normalized values for each mutation
-
-    line_colors: list ["blue", "grey]
-        colors for the total clonal and subclonal lines
-
-    Return
-    ======
-    plotly.Figure
-        ssnv multiplicity plot
-    """
-    # Gets indices of mutations that need to be filtered out 
-    hz_del_ix = maf_df["q_hat"] == 0
-    SC_CN_ix = maf_df["H1"].notna()  # SSNVs on subclonal SCNAs
-    remove_ixs = hz_del_ix | SC_CN_ix | (maf_df["alt"] == 0)  # Drop forced-called mutations
-    SSNV_skew =  maf_df["SSNV_skew"][0]
-
-    # Removes the mutations on HZdels, ssnvs on subclonal SCNAs or forced-called
-    maf_df_filtered = maf_df[~remove_ixs]
-    af_beta_distr_filtered = af_beta_distr[~remove_ixs]
-    normalized_values_matrix_filtered = normalized_values_matrix[~remove_ixs]
-
-    # raises an error if all mutations are removed
-    if maf_df_filtered.shape[0] == 0:
-        raise Exception("No valid SSNVs to plot")
-
-    # Get the multiplicity probability and normalize values for each mutation
-    multiplicity_dict = get_SSNV_on_clonal_CN_multiplicity_densities(maf_df_filtered, af_beta_distr_filtered, normalized_values_matrix_filtered)
-    
-    mult_values = multiplicity_dict["mult_densities"]
-    mult_grid = multiplicity_dict["mult_normalized_mat"]
-    pr_clonal = maf_df_filtered["Pr_somatic_clonal"].values
-    multiplicity_values = maf_df['multiplicity']
-
-    mult_xlim = 2.5
-  
-    # Plot the ssnv multiplicity probability distributions
-    fig = draw_mut_multiplicity_densities(
-        multiplicity_values,
-        mult_values, 
-        mult_grid,
-        pr_clonal, 
-        x_lim=mult_xlim,
-        line_colors=line_colors,
-    )
-
-    # plots a vertical line at 2 
-    fig.add_trace(go.Scatter(
-        x=[2, 2],
-        y=[0, 1],
-        mode="lines",
-        line=dict(width=3, dash="dash", color="green"),
-        name='2 vertical line'
-    ))
-
-    # plots a vertical line at 1
-    fig.add_trace(go.Scatter(
-        x=[1, 1],
-        y=[0, 1],
-        mode="lines",
-        line=dict(width=3, dash="dash", color="green"),
-        name='1 vertical line'
-    ))
-
-    # plots a vertical line at ssnv_skew*1
-    fig.add_trace(go.Scatter(
-        x=[SSNV_skew*1, SSNV_skew*1],
-        y=[0, 1],
-        mode="lines",
-        line=dict(width=3, dash="dash", color="green"),
-        name='SSNV_skew*1 vertical line'
-    ))
-
-    # plots a vertical line at ssnv_skew*2
-    fig.add_trace(go.Scatter(
-        x=[SSNV_skew*2, SSNV_skew*2],
-        y=[0, 1],
-        mode="lines",
-        line=dict(width=3, dash="dash", color="green"),
-        name='SSNV_skew*2 vertical line'
-    ))
-
-    return fig
-
-def get_grid_combined_mut_densities(
-        mut_pr, 
-        grid, 
-        x_lim
-    ):
-    """
-    
-    """
-
-    # Calculate the bin width based on x_lim and number of bins (100)
-    bin_width = x_lim / 100
-    breaks = np.arange(0, x_lim, bin_width) 
-    #TRYING TO SHIFT THE X VALUES!!
-    #np.arange(0, x_lim + bin_width, bin_width)  # creates breaks from 0 to x_lim with step bin_w
-    mult_grid = breaks
-    
-    # Initialize grid_dens as a zero matrix
-    grid_dens = np.zeros((mut_pr.shape[0], len(mult_grid)))
-    
-    # Loop through each row of mut_pr
-    for i in range(mut_pr.shape[0]):
-        x = grid[i, :]  # Extract the i-th row from the grid, linspace(0, 2.5, 300) / som_delta[i]
-        y = mut_pr[i, :]  # Extract the i-th row from mut_pr, af_beta[i, :] * som_delta[i]
-        
-        # Checks if more than two non-NaN values are present in y
-        if np.sum(~np.isnan(y)) > 2:
-            #
-            # Perform linear interpolation on x and y, using mult_grid as x out to get new y output
-            interp_func = interp1d(x, y, kind='linear', bounds_error=False, fill_value=np.nan)
-            # mult_grid = linspace(0, 2.5, 300)
-            grid_dens[i, :] = interp_func(mult_grid)
-    
-    return grid_dens
-
-def draw_mut_multiplicity_densities(
-        multiplicity_values,
-        mult_dens,
-        grid, 
-        pr_clonal, 
-        x_lim, 
-        line_colors, 
-    ):
-    """ 
-    Create mutation multiplicity densities using Plotly Dash
-
-    Parameters
-    ==========
-    mult_dens: 2D array
-        ssnv multiplicity densities for each mutation 
-    
-    pr_clonal: 1D array
-        the probability of a mutation being clonal
-
-    x_lim: int
-        upper bound x value on the graph
-
-    line_colors: List(str), ["blue", "grey"]
-        list of the line colors used for the total subclonal and clonal densities
-
-    Return
-    ======
-    plotly.Figure
-        ssnv multiplicity figure with the individual multiplicity lines, total subclonal densities, and the total clonal densities
-    """
-    pr_subclonal = 1 - pr_clonal
-    pr_subclonal[pr_subclonal < 0] = 0  # Round-off error handling
-    mult_grid = np.linspace(0, x_lim, 300)
-
-    # for the x values scale the np.linspace * linspace and then run np.interp1d
-
-    # mult_dens => multiplicity_values
-    # grid => normalized values
-
-    # change the x_limit so it is not 2.5, the multiplicity could be greater than 2.5, look into trying to change this potentially
-    # also might need to change the calculation for som_delta
-    # UNCOMMENT THIS LATER
-    # subclonal_mult_dens = get_grid_combined_mut_densities(mult_dens, grid, x_lim)
-
-    # Initialize the figure
-    fig = go.Figure()
-
-    # Update the plot title and axis labels
-    fig.update_layout(
-        title="Mutation Multiplicity Densities",
-        xaxis_title="SSNV multiplicity",
-        yaxis_title="Density",
-        xaxis=dict(
-                range=[0, x_lim],
-                tickvals=[i/10 for i in range(0, int(x_lim*10)+4, 5) ],  # Set the tick positions
-                ticktext=[f"{i/10}" for i in range(0,int(x_lim*10)+4, 5)],  # Set the labels for those tick positions),
-                ),
-        yaxis=dict(range=[0, 1.2]),
-        showlegend=False,
-        template="plotly_white",
-        width=400,
-    )
-
-    cleaned_pr_clonal = np.reshape(pr_clonal, (pr_clonal.shape[0], 1))
-    
-
-
-    # Adds the normalized total sum of the Subclonal densities to the plot
-    fig.add_trace(go.Scatter(
-        x=mult_dens, 
-        y=cleaned_pr_clonal, 
-        mode='markers', 
-        line=dict(color=line_colors[1], dash='dash'),
-        name="Plotting the multiplicity values"
-    ))
-
-    # # Adds the normalized total sum of the Subclonal densities to the plot
-    # fig.add_trace(go.Scatter(
-    #     x=mult_dens, 
-    #     y=mult_dens*cleaned_pr_clonal, 
-    #     mode='markers', 
-    #     line=dict(color=line_colors[1], dash='dash'),
-    #     name="Plotting the multiplicity values"
-    # ))
-
-    return fig
-
-    # NEED TO CHANGE HOW THE SUBCLONAL DENSITIES ARE CALCULATED, NEED TO USE THE LINEAR INTERPOLATION FOR THE SUBCLONAL DENSITIES
-    # AND THEN USE THE MULT_DENS FOR THE CLONAL DENSITIES LINES!!, REWRITE R CODE
-
-
-    # RECOMMENDED TO NOT PLOT THE INDIVIDUAL LINES!!!
-    # # Add individual lines for each mutation
-    # for i in range(mult_dens.shape[0]):
-    #     fig.add_trace(go.Scatter(
-    #         x=mult_grid,  # need to multiply the np.linspace * som_delta
-    #         # x=grid[i, :],
-    #         y=mult_dens[i, :],
-    #         mode='lines', 
-    #         line=dict(color="blue"))
-    #         )
-
-    # Set the densities to 0 if they are NaN
-    # cleaned_mult_dens = np.nan_to_num(mult_dens)
-    cleaned_mult_values = np.nan_to_num(mult_dens)
-    # clonal_mult_dens = cleaned_mult_dens
-
-
-    # subclonal_mult_dens = np.nan_to_num(subclonal_mult_dens)
-    subclonal_mult_dens = np.nan_to_num(mult_dens)
-
-    # Reshape clonal and subclonal probabilities for future matrix multiplication
-    cleaned_pr_clonal = np.reshape(pr_clonal, (pr_clonal.shape[0], 1))
-    cleaned_pr_subclonal = np.reshape(pr_subclonal, (pr_subclonal.shape[0], 1))
-
-
-    # MIGHT NEED TO PLOT THE EXPECTED VALUE OF THE MULTIPLICITY DISTRIBUTION
-
-
-
-    # MIGHT NEED TO ADD THE SCALED COMPONENT!!!
-    # Add the total densities
-
-    # CCF => cancer cell fraction
-    # CCF estimate is 1, meaning 100%, this is for clonal probabilities, limit the clonal probabilities to only having 95%
-        # make sure to review the absolute code assumptions!!, 
-            # determine assumptions for clonal and subclonal plots
-        # clonal summed total should have a peak of about 1
-
-    # beta distribution used for VAF, might need to limit the number of lines used to get the summed total for clonal, since you want to estimate CCF ~1
-    # After reproducing the asbolute solution plot, need to work on making a more insightful plot, 
-        # i.e. plotting things of different magnitude (using log scale plots), 
-        # and not always assuming the peak is at multiplicity 1
-    
-    # Ron is working on the absolute plots, reach out to him since he is updating the code so that the plots/solutions are cleaner
-        # rsolan@broadinstitute.org
-        # reach out to him again about the plots
-
-    # CCF estimate is less than 1
-    # only sum up the elements for n_cl with pr_clonal > 95%, need to make sure it is clonal
-    # only sums up rows with clonal probabilities between 99 and 100% since we assume that CCF~1
-    ignore_idx = np.where(cleaned_pr_clonal*100 >= 95)[0]
-    # new_mult_dens = cleaned_mult_dens[~ignore_idx, :]
-    # new_pr_clonal = cleaned_pr_clonal[~ignore_idx, :]
-    new_mult_dens = cleaned_mult_values[~ignore_idx, :]
-    new_pr_clonal = cleaned_pr_clonal[~ignore_idx, :]
-
-    # DO COMPARISON WITH my code and the AI R code, ask where the shift is occurring
-    # Talk to Chip about how there is still a skew on the plot
-    # Talk to Ron again!!
-
-    # calculating the expected value
-    ncl = np.nansum(new_mult_dens * new_pr_clonal, axis=0)
-    nsbcl = np.nansum(new_mult_dens * cleaned_pr_subclonal, axis=0)
-
-    # ncl = np.nansum(new_mult_dens * new_pr_clonal, axis=0)
-    # # ncl = np.nansum(cleaned_mult_dens * cleaned_pr_clonal, axis=0)
-    # nsbcl = np.nansum(cleaned_mult_dens * cleaned_pr_subclonal, axis=0)
-    # # grid_new = np.linspace(0, 2.5, len(multiplicity_values)) * multiplicity_values
-
-    # DIFFERENT WAY OF COMPUTING WEIGHTED AVERAGE
-    # ncl = np.nansum(grid * cleaned_pr_clonal, axis=0) 
-    # nsbcl = np.nansum(grid * cleaned_pr_subclonal, axis=0)
-
-    # DIFFERENT WAY OF COMPUTING WEIGHTED AVERAGE
-    # ncl = np.nansum(np.reshape(multiplicity_values, (multiplicity_values.shape[0], 1)) * np.reshape(cleaned_pr_clonal, (cleaned_pr_clonal.shape[0], 1)), axis=1)
-    # nsbcl = np.nansum(np.reshape(multiplicity_values, (multiplicity_values.shape[0], 1)) * np.reshape(cleaned_pr_subclonal, (cleaned_pr_subclonal.shape[0], 1)), axis=1)
-
-    # Adds the normalized total sum of the Subclonal densities to the plot
-    fig.add_trace(go.Scatter(
-        x=mult_grid,
-        # x=mult_grid[~ignore_idx], 
-        # x=grid,
-        # x=grid_new,
-        # x=multiplicity_values,
-        y=nsbcl / np.max(nsbcl), # nsbcl / 
-        mode='lines', 
-        line=dict(color=line_colors[0], dash='dash'),
-        name="Subclonal Total"
-    ))
- 
-    # Adds the normalized total sum of the Subclonal densities to the plot
-    fig.add_trace(go.Scatter(
-        x=mult_grid, 
-        # x=grid,
-        # x=grid_new,
-        # x=multiplicity_values,
-        y=ncl / np.max(ncl), 
-        mode='lines', 
-        line=dict(color=line_colors[1], dash='dash'),
-        name="Clonal Total"
-    ))
-
-    return fig
