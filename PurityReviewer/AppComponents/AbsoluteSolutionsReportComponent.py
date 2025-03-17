@@ -3,6 +3,7 @@ Displays a allelic copy ratio profile and a table of solutions from ABSOLUTE (Ca
 """
 import pandas as pd
 from dash import dcc, html, dash_table
+import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 
@@ -10,7 +11,7 @@ from AnnoMate.Data import Data, DataAnnotation
 from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
 from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, gen_mut_allele_fraction_plot
 
 
 absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
@@ -125,8 +126,6 @@ def gen_absolute_solutions_report_new_data(
                                          line_width=1
                                         )
             i += 1
-
-        #mut_fig_with_lines.update_yaxes(range=[0, half_1_line * 2])
         
         purity = solution_data['alpha']
         ploidy = solution_data['tau_hat']
@@ -139,10 +138,13 @@ def gen_absolute_solutions_report_new_data(
                                     line_dash="dash",
                                     line_color='black',
                                     line_width=1)
+            
+        allele_fraction_fig = gen_mut_allele_fraction_plot(maf_soln)
 
     return [absolute_rdata_df.to_dict('records'),
             cnp_fig_with_lines, 
             mut_fig_with_lines,
+            allele_fraction_fig,
             purity,
             ploidy, 
             [0],
@@ -243,10 +245,6 @@ def gen_absolute_solutions_report_layout():
         a plotly dash layout with a Table with selectable rows for the ABSOLUTE solutions, a copy number profile, and mutation profile
     """
 
-    # if data_to_display is None:
-    #     data_to_display = pd.DataFrame(columns=absolute_rdata_cols).to_dict(
-    #                'records')
-
     # modify this to check if 
     return html.Div(
         children=[
@@ -283,10 +281,22 @@ def gen_absolute_solutions_report_layout():
                      html.P(0, id='absolute-ploidy',
                             style={'display': 'inline'})]),
             dcc.Graph(id='cnp-graph', figure={}),
-            dcc.Graph(id='mut-graph', figure={})
+            dbc.Row([
+                dbc.Col([
+                    # creates the multiplicity plot
+                    dcc.Graph(id='mut-graph', 
+                        figure={}, 
+                        style={'display':'block', 'width':'900px'}),
+                ]),
+                dbc.Col([
+                    # allele fraction plot
+                    dcc.Graph(id='allele-fraction-graph', 
+                            figure={},
+                            style={'display':'block', 'width':'300px'}),
+                ]),
+            ]),   
         ]
     )
-
 
 def gen_absolute_solutions_report_component():
     """
@@ -308,6 +318,7 @@ def gen_absolute_solutions_report_component():
             Output('absolute-rdata-select-table', 'data'),
             Output('cnp-graph', 'figure'),
             Output('mut-graph', 'figure'),
+            Output('allele-fraction-graph', 'figure'),
             Output('absolute-purity', 'children'),
             Output('absolute-ploidy', 'children'),
             Output('absolute-rdata-select-table', 'selected_rows'),

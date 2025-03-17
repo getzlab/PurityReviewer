@@ -139,7 +139,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
     parse_absolute_soln_func = custom_parse_absolute_soln if custom_parse_absolute_soln is not None else parse_absolute_soln
 
     try:
-        absolute_rdata_df,maf,maf_annot_list = parse_absolute_soln_func(pairs_data_row[rdata_fn_col])
+        absolute_rdata_df, maf, maf_annot_list = parse_absolute_soln_func(pairs_data_row[rdata_fn_col])
     except Exception as e:
         print(e)
         print("excepted error and initialized empty dataframes")
@@ -182,7 +182,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         mut_fig = gen_mut_figure(maf_soln, hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
         mut_fig_with_lines = go.Figure(mut_fig)
         
-        allele_fraction_fig, _ = gen_mut_allele_fraction_plot(maf_soln)
+        allele_fraction_fig = gen_mut_allele_fraction_plot(maf_soln)
         
         for yval in [1,2]:
             mut_fig_with_lines.add_hline(y=yval,
@@ -396,18 +396,21 @@ def gen_absolute_precalled_solution_report_layout():
                                 html.P(0, id='absolute-ploidy',
                                         style={'display': 'inline'})]),
                         dcc.Graph(id='cnp-graph', figure={}),
-                        dcc.Graph(id='mut-graph', figure={}),
-                   
+
                         dbc.Row([
                             dbc.Col([
-                                    html.Div(
-                                    [
-                                        # allele fraction plot
-                                         dcc.Graph(id='allele-fraction-graph', figure={}),
-                                    ])
-                                ]
-                            ),
-                        ]),
+                                # creates the multiplicity plot
+                                dcc.Graph(id='mut-graph', 
+                                  figure={}, 
+                                  style={'display':'block', 'width':'900px'}),
+                            ]),
+                            dbc.Col([
+                                # allele fraction plot
+                                dcc.Graph(id='allele-fraction-graph', 
+                                        figure={},
+                                        style={'display':'block', 'width':'300px'}),
+                            ]),
+                        ]),   
                     ]
                 )
             ],       

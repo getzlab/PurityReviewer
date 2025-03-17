@@ -443,10 +443,6 @@ def download_rdata(rdata_fn_s, rdata_dir, force_download=False):
 
         local_rdata_dict[pair_id] = local_absolute_rdata_fn
 
-    print("inside the download_rdata file")
-    print("length of the local_rdata_dict: ", len(pd.Series(local_rdata_dict)))
-    print("t")
-
     return pd.Series(local_rdata_dict)
 
 def add_precalled_purities_to_pairs(pairs_df, sample_df, precalled_purity_col_nm='PCA__ABSOLUTE__Cancer_DNA_fraction'):
@@ -544,7 +540,6 @@ def gen_mut_allele_fraction_plot(
         y1=1,
         line=dict(color='grey', dash='dot', width=2),
         name="alpha * f_s / 2"
-
     )
     fig.add_annotation(
         x=alpha * ssnv_skew / 2,
@@ -569,7 +564,7 @@ def gen_mut_allele_fraction_plot(
         width=400,
     )
 
-    return fig, {"af_beta_distributions": allele_fraction_beta_distributions, "normalized_values_matrix": normalized_values_matrix}
+    return fig
 
 def draw_mut_beta_densities(
         af_beta_distributions, 
