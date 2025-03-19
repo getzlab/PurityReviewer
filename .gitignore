@@ -6,6 +6,7 @@
 *local_rdata*
 *precalled_purity_venv*
 *precalled_purity_reviewer_output*
+<<<<<<< HEAD
 *example_notebooks/data/review_data.pkl*
 *example_notebooks/matched_purity_reviwer_output*
 *example_notebooks/data/review_data.pkl
@@ -13,3 +14,9 @@
 *example_notebooks/debug_multiplicity.pickle
 *example_notebooks/allele_fraction.pickle
 *PurityReviewer/AppComponents/__pycache__/AbsoluteSolutionsReportComponent.cpython-39.pyc
+=======
+.DS_Store
+.vscode/
+*venv/
+
+>>>>>>> 97870bdd426a0cd44cd78f9af80203c19b12999d

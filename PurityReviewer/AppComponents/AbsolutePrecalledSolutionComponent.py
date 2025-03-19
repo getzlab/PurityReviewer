@@ -35,6 +35,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
     slider_value,  # dash app parameters come first
     selected_row_array, # dash app parameters come first
     precalled_radio_button_value,
+    purity_column,
     rdata_fn_col,
     acs_col, 
     mut_fig_hover_data,
@@ -112,7 +113,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
     # checks if you are loading in the data for the first time (new data callback)
     if not internal_callback:
         slider_value = 5
-
+        
     # defaults to selecting all precalled purity values
     purity_range_lower = 0
     purity_range_upper = 100
@@ -175,7 +176,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
             i += 1
         
         purity = solution_data['alpha']
-        ploidy = solution_data['tau_hat']
+        ploidy = solution_data[purity_column]
 
         maf_soln['multiplicity'] = calculate_multiplicity(maf_soln, purity)
 
@@ -209,6 +210,7 @@ def gen_absolute_precalled_solutions_report_internal(
     slider_value,  # dash app parameters come first
     selected_row_array, # dash app parameters come first
     precalled_radio_button_value,
+    purity_column,
     rdata_fn_col,
     acs_col, 
     mut_fig_hover_data,
@@ -288,6 +290,7 @@ def gen_absolute_precalled_solutions_report_internal(
         slider_value,# dash app parameters come first
         selected_row_array, 
         precalled_radio_button_value,
+        purity_column,
         rdata_fn_col,
         acs_col, 
         mut_fig_hover_data,
@@ -363,6 +366,17 @@ def gen_absolute_precalled_solution_report_layout():
                 html.Div(
                     children=[
                         html.H2('Absolute Solutions Table'),
+                        dbc.Label("Purity Column"),
+                        dbc.RadioItems(
+                                    options=[
+                                        {
+                                            "label": v, 
+                                            "value": v
+                                        } for v in ['tau', 'tau_hat']
+                                    ],
+                                    value="tau_hat",
+                                    id="purity-column-radioitems",
+                                ),
                         dash_table.DataTable(
                         id='absolute-rdata-select-table',
                         columns=[
@@ -438,6 +452,7 @@ def gen_absolute_precalled_solutions_report_component():
             Input('custom-precalled-slider', 'value'),
             Input('absolute-rdata-select-table', 'selected_rows'),
             Input('precalled-selection-type-radioitems', 'value'),
+            Input('purity-column-radioitems', 'value'),
         ],
         callback_output=[
             Output('custom-precalled-slider', 'value'),

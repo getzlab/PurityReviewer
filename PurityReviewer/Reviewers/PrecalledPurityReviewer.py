@@ -147,6 +147,7 @@ class PrecalledPurityReviewer(ReviewerTemplate):
         self.add_autofill('Pick current ABSOLUTE solution', State('absolute-purity', 'children'), 'Purity')
         self.add_autofill('Pick current ABSOLUTE solution', State('absolute-ploidy', 'children'), 'Ploidy')
         self.add_autofill('Pick current ABSOLUTE solution', fill_value='Absolute', annot_name='Method')
+        self.add_autofill('Pick current ABSOLUTE solution', State('purity-column-radioitems', 'value'), 'Ploidy column')
         self.add_autofill(
             'Pick current ABSOLUTE solution',
             fill_value=State('absolute-solution-idx', 'children'),
@@ -170,6 +171,12 @@ class PrecalledPurityReviewer(ReviewerTemplate):
             review_data_annotation=DataAnnotation(
                 annot_value_type='string', 
                 options=['Absolute', 'Manual']))
+        
+        self.add_review_data_annotation(
+            annot_name='Ploidy column',
+            review_data_annotation=DataAnnotation(
+                annot_value_type='string',
+                options=['tau', 'tau_hat']))
 
         self.add_review_data_annotation(
             annot_name='Absolute_solution_idx',
@@ -185,5 +192,6 @@ class PrecalledPurityReviewer(ReviewerTemplate):
         self.add_annotation_display_component('Purity', NumberAnnotationDisplay())
         self.add_annotation_display_component('Ploidy', NumberAnnotationDisplay())
         self.add_annotation_display_component('Method', SelectAnnotationDisplay())
+        self.add_annotation_display_component('Ploidy column', SelectAnnotationDisplay())
         self.add_annotation_display_component('Absolute_solution_idx', NumberAnnotationDisplay())
         self.add_annotation_display_component('Notes', TextAreaAnnotationDisplay())
