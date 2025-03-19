@@ -402,13 +402,13 @@ def gen_absolute_precalled_solution_report_layout():
                                 # creates the multiplicity plot
                                 dcc.Graph(id='mut-graph', 
                                   figure={}, 
-                                  style={'display':'block', 'width':'900px'}),
+                                  style={'width':'1100px'}),
                             ]),
                             dbc.Col([
                                 # allele fraction plot
                                 dcc.Graph(id='allele-fraction-graph', 
                                         figure={},
-                                        style={'display':'block', 'width':'300px'}),
+                                        style={'width':'100px'}),
                             ]),
                         ]),   
                     ]
