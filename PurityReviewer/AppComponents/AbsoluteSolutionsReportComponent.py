@@ -7,12 +7,9 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 
-from AnnoMate.Data import Data, DataAnnotation
-from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
+from AnnoMate.ReviewDataApp import AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
-from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, gen_mut_allele_fraction_plot
-
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, gen_mut_allele_fraction_plot, gen_mult_allele_subplots
 
 absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
                        'sigma_H', 
@@ -21,7 +18,6 @@ absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
                        'SCNA_likelihood', 
                        'Kar_likelihood', 
                        'SSNVs_likelihood']
-
 
 def gen_absolute_solutions_report_new_data(
     data: GenericData,
@@ -88,6 +84,8 @@ def gen_absolute_solutions_report_new_data(
     int
         Index of the current ABSOLUTE solution. For new data, it is set to the first solution 0
     """
+    if csize is None:
+        csize = CSIZE_DEFAULT
     
     data_df = data.df
     r = data_df.loc[data_id]
@@ -102,8 +100,6 @@ def gen_absolute_solutions_report_new_data(
     absolute_rdata_df = absolute_rdata_df.round(2)
     
     cnp_fig = gen_cnp_figure(r[acs_col], csize=CSIZE_DEFAULT)
-
-
 
     # add 1 and 0 lines
     cnp_fig_with_lines = go.Figure(cnp_fig)
@@ -133,24 +129,19 @@ def gen_absolute_solutions_report_new_data(
         maf_soln['multiplicity'] = calculate_multiplicity(maf_soln,purity)
         mut_fig = gen_mut_figure(maf_soln, hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
         mut_fig_with_lines = go.Figure(mut_fig)
-        for yval in [1,2]:
-            mut_fig_with_lines.add_hline(y=yval,
-                                    line_dash="dash",
-                                    line_color='black',
-                                    line_width=1)
-            
         allele_fraction_fig = gen_mut_allele_fraction_plot(maf_soln)
+
+        # create a subplots with multiplicity plot on left and allele fraction plot on right
+        multiplicity_allele_subplots_fig = gen_mult_allele_subplots(mut_fig_with_lines, allele_fraction_fig, csize=csize)
 
     return [absolute_rdata_df.to_dict('records'),
             cnp_fig_with_lines, 
-            mut_fig_with_lines,
-            allele_fraction_fig,
+            multiplicity_allele_subplots_fig,
             purity,
             ploidy, 
             [0],
             0
             ]
-
 
 def gen_absolute_solutions_report_internal(
     data: GenericData,
@@ -233,8 +224,6 @@ def gen_absolute_solutions_report_internal(
     output_data[-1] = selected_row_array[0] + 1 # 1 indexed
     return output_data
 
-
-# def gen_absolute_solutions_report_layout(data_to_display:pd.DataFrame | None =None):
 def gen_absolute_solutions_report_layout():
     """
     Generates the layout of the ABSOLUTE solutions report component in the dashboard
@@ -282,19 +271,8 @@ def gen_absolute_solutions_report_layout():
                             style={'display': 'inline'})]),
             dcc.Graph(id='cnp-graph', figure={}),
             dbc.Row([
-                dbc.Col([
-                    # creates the multiplicity plot
-                    dcc.Graph(id='mut-graph', 
-                        figure={}, 
-                        style={'display':'block', 'width':'900px'}),
-                ]),
-                dbc.Col([
-                    # allele fraction plot
-                    dcc.Graph(id='allele-fraction-graph', 
-                            figure={},
-                            style={'display':'block', 'width':'300px'}),
-                ]),
-            ]),   
+                    dcc.Graph(id="multiplicity-allele-fraction-graph", figure={})
+                ]),  
         ]
     )
 
@@ -317,14 +295,10 @@ def gen_absolute_solutions_report_component():
         callback_output=[
             Output('absolute-rdata-select-table', 'data'),
             Output('cnp-graph', 'figure'),
-            Output('mut-graph', 'figure'),
-            Output('allele-fraction-graph', 'figure'),
+            Output('multiplicity-allele-fraction-graph', 'figure'),
             Output('absolute-purity', 'children'),
             Output('absolute-ploidy', 'children'),
             Output('absolute-rdata-select-table', 'selected_rows'),
             Output('absolute-solution-idx', 'children')
         ],
     )
-    
-    
-    

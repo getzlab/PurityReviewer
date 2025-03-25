@@ -7,8 +7,8 @@ displayed, by using a slider to select the range of solutions shown. If the abso
 purity value is within range of the a precalled purity value then the absolute solution is 
 displayed in the absolute solution report. 
 """
-from AnnoMate.Data import Data, DataAnnotation
-from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
+from AnnoMate.Data import DataAnnotation
+from AnnoMate.ReviewDataApp import ReviewDataApp
 from AnnoMate.DataTypes.GenericData import GenericData
 from AnnoMate.ReviewerTemplate import ReviewerTemplate
 from AnnoMate.AppComponents.DataTableComponents import gen_annotated_data_info_table_component
@@ -16,31 +16,15 @@ from AnnoMate.AnnotationDisplayComponent import NumberAnnotationDisplay, SelectA
 
 import pandas as pd
 import numpy as np
-import time
-import warnings
 
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from dash import dcc
-from dash import html
-from dash.dependencies import Input, Output, State
-from dash import Dash, dash_table
-import dash_bootstrap_components as dbc
+from dash.dependencies import State
 
-from rpy2.robjects import r, pandas2ri
-import rpy2.robjects as robjects
-import os
-import pickle
-from typing import Union, List, Dict
-import sys
+from rpy2.robjects import pandas2ri
+from typing import List, Dict
 
-from PurityReviewer.AppComponents.AbsoluteSolutionsReportComponent import gen_absolute_solutions_report_component
 from PurityReviewer.AppComponents.AbsoluteCustomSolutionComponent import gen_absolute_custom_solution_component
 from PurityReviewer.AppComponents.AbsolutePrecalledSolutionComponent import gen_absolute_precalled_solutions_report_component
-
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, parse_absolute_soln, validate_purity, validate_ploidy, CSIZE_DEFAULT
-
+from PurityReviewer.AppComponents.utils import validate_purity, validate_ploidy
 
 class PrecalledPurityReviewer(ReviewerTemplate):
     """
@@ -157,7 +141,6 @@ class PrecalledPurityReviewer(ReviewerTemplate):
         self.add_autofill('Use current manual solution', State('custom-cnp-graph-ploidy', 'value'), 'Ploidy')
         self.add_autofill('Use current manual solution', fill_value='Manual', annot_name='Method')
         
-
     def set_default_review_data_annotations(self):
         self.add_review_data_annotation(
             annot_name='Purity',

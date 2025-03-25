@@ -4,8 +4,6 @@ import numpy as np
 from functools import lru_cache
 import dalmatian
 from scipy.stats import beta
-import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -15,11 +13,8 @@ import rpy2.robjects as robjects
 from cnv_suite.visualize import plot_acr_interactive, add_background, update_cnv_scatter_sigma_toggle, prepare_df
 from cnv_suite import calc_avg_cn
 from natsort import natsorted
-from scipy.interpolate import interp1d
-from sklearn.preprocessing import MinMaxScaler
 
 from AnnoMate.AppComponents.utils import freezeargs, cached_read_csv
-
 
 CSIZE_DEFAULT = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
                  '6': 171115067, '7': 159138663, '8': 146364022, '9': 141213431, '10': 135534747,
@@ -48,7 +43,6 @@ def get_cum_sum_csize(csize):
         cum_sum_csize[chrom] = cum_sum
         cum_sum += size
     return cum_sum_csize
-
 
 def plot_cnp_histogram(
     seg_df,
@@ -127,7 +121,6 @@ def plot_cnp_histogram(
     fig.update_layout(showlegend=False)
     return fig
 
-
 #@freezeargs
 #@lru_cache(maxsize=32)
 def gen_mut_figure(maf_df,
@@ -191,8 +184,6 @@ def gen_mut_figure(maf_df,
     maf_df[chromosome_col] = maf_df[chromosome_col].astype(str)
     
     maf_df['new_position'] = maf_df.apply(lambda r: cum_sum_csize[r[chromosome_col]] + r[start_position_col], axis=1)
-
-    #maf_df['tumor_f'] = maf_df[alt_count_col] / (maf_df[alt_count_col] + maf_df[ref_count_col])
     
     fig = px.scatter(maf_df, x='new_position', y='multiplicity', marginal_y='histogram', hover_data=hover_data)
 
@@ -208,11 +199,9 @@ def gen_mut_figure(maf_df,
         range=[0, chrom_start['Z']]
     )
     fig.update_xaxes(title_text="Chromosome")
-                      
-                      
     fig.update_yaxes(range=[0, 2.5])
 
-    final_fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_widths=[0.77, 0.25])
+    final_fig = make_subplots(rows=1,cols=2, shared_yaxes=True, column_widths=[0.77, 0.25])
     for t in fig.data:
         final_fig.add_trace(t, row=1, col=1)
 
@@ -220,7 +209,7 @@ def gen_mut_figure(maf_df,
     final_fig.update_xaxes(fig.layout.xaxis, row=1, col=1)
     final_fig.update_yaxes(fig.layout.yaxis, row=1, col=1)
     final_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
-    
+
     return final_fig
 
 def gen_cnp_figure(acs_fn,
@@ -262,7 +251,6 @@ def gen_cnp_figure(acs_fn,
         update_cnv_scatter_sigma_toggle(cnp_fig, sigmas)
 
     return cnp_fig
-
 
 @freezeargs
 @lru_cache(maxsize=32)
@@ -476,6 +464,56 @@ def add_precalled_purities_to_pairs(pairs_df, sample_df, precalled_purity_col_nm
 
     return pairs_with_precalled_purity_df
 
+def gen_mult_allele_subplots(
+    multiplicity_fig,
+    allele_fraction_fig,
+    csize=None
+):
+    """
+    Generates the plotly subplot for the multiplicity and allele fraction graphs
+
+    Parameters
+    ==========
+    multiplicity_fig: go.Figure
+        figure with the multiplicity data
+
+    allele_fraction_fig: go.Figure
+        figure with the allele fraction data
+
+    Return
+    ======
+    go.Figure    
+        subplot figure with both the multiplicity (col 1) and allele fraction (col 2) traces on it 
+    """
+    if csize is None:
+        csize = CSIZE_DEFAULT
+
+    multiplicity_allele_subplots_fig = go.Figure()
+
+    multiplicity_allele_subplots_fig = make_subplots(rows=1, cols=2, column_widths=[0.79, 0.25],
+                                                     subplot_titles=('Multiplicity Plot', 'Mutation Allele Fraction Plot'))
+
+    # Add traces from the first figure, mut_fig_with_lines, to the left subplot (row=1, col=1)
+    for trace in multiplicity_fig.data:
+        multiplicity_allele_subplots_fig.add_trace(trace, row=1, col=1)
+
+    # Add traces from the second figure, allele_fraction_fig, to the right subplot (row=1, col=2)
+    for trace in allele_fraction_fig.data:
+        multiplicity_allele_subplots_fig.add_trace(trace, row=1, col=2)
+
+    add_background(multiplicity_allele_subplots_fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
+    multiplicity_allele_subplots_fig.update_xaxes(multiplicity_fig.layout.xaxis, row=1, col=1)
+    multiplicity_allele_subplots_fig.update_yaxes(multiplicity_fig.layout.yaxis, row=1, col=1)
+
+    for yval in [1,2]:
+        multiplicity_allele_subplots_fig.add_hline(y=yval, row=1,col=1, line_dash="dash", line_color='black', line_width=1)
+            
+    multiplicity_allele_subplots_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
+    multiplicity_allele_subplots_fig.update_xaxes(allele_fraction_fig.layout.xaxis, row=1, col=2)
+    multiplicity_allele_subplots_fig.update_yaxes(allele_fraction_fig.layout.yaxis, row=1, col=2)
+
+    return multiplicity_allele_subplots_fig
+
 def gen_mut_allele_fraction_plot(
         maf_df, 
     ):
@@ -492,12 +530,6 @@ def gen_mut_allele_fraction_plot(
         tuple
             plotly.Figure
                 plot for the allele fraction for each mutation
-            
-            Dict("af_beta_distributions": allele_fraction_beta_distributions, "normalized_values_matrix": normalized_values_matrix)
-                2D numpy array
-                    beta distribution for the allele fraction 
-                2D numpy array
-                    normalized values for each mutation
     """
     clonal_probabilities = maf_df['Pr_somatic_clonal'].values
     ssnv_skew = maf_df['SSNV_skew'].values[0]

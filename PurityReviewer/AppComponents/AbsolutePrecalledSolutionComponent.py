@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 
 from AnnoMate.ReviewDataApp import AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, gen_mut_allele_fraction_plot
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, gen_mut_allele_fraction_plot, gen_mult_allele_subplots
 import pandas as pd
 
 PRECALLED_SLIDER_VALUES = ["Use slider", "Select All"]
@@ -110,6 +110,8 @@ def gen_absolute_solutions_report_range_of_precalled_component(
     int
         Index of the current ABSOLUTE solution. For new data, it is set to the first solution 0
     """  
+    multiplicity_allele_subplots_fig = go.Figure()
+
     # checks if you are loading in the data for the first time (new data callback)
     if not internal_callback:
         slider_value = 5
@@ -152,7 +154,6 @@ def gen_absolute_solutions_report_range_of_precalled_component(
 
     # add 1 and 0 lines
     cnp_fig_with_lines = go.Figure(cnp_fig)
-    
     purity = 0
     ploidy = 0
 
@@ -179,17 +180,12 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         ploidy = solution_data[purity_column]
 
         maf_soln['multiplicity'] = calculate_multiplicity(maf_soln, purity)
-
         mut_fig = gen_mut_figure(maf_soln, hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
         mut_fig_with_lines = go.Figure(mut_fig)
-        
         allele_fraction_fig = gen_mut_allele_fraction_plot(maf_soln)
         
-        for yval in [1,2]:
-            mut_fig_with_lines.add_hline(y=yval,
-                                    line_dash="dash",
-                                    line_color='black',
-                                    line_width=1)
+    # create a subplots with multiplicity plot on left and allele fraction plot on right
+    multiplicity_allele_subplots_fig = gen_mult_allele_subplots(mut_fig_with_lines, allele_fraction_fig, csize=CSIZE_DEFAULT)
     
     return [
         5, # default range for the slider
@@ -197,8 +193,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         [0], # default selected row is first row in table
         absolute_rdata_within_range_df.to_dict('records'),
         cnp_fig_with_lines, 
-        mut_fig_with_lines,
-        allele_fraction_fig,
+        multiplicity_allele_subplots_fig,
         purity,
         ploidy, 
         1 # defaults to having the 1st copy number profile 
@@ -412,18 +407,7 @@ def gen_absolute_precalled_solution_report_layout():
                         dcc.Graph(id='cnp-graph', figure={}),
 
                         dbc.Row([
-                            dbc.Col([
-                                # creates the multiplicity plot
-                                dcc.Graph(id='mut-graph', 
-                                  figure={}, 
-                                  style={'width':'1100px'}),
-                            ]),
-                            dbc.Col([
-                                # allele fraction plot
-                                dcc.Graph(id='allele-fraction-graph', 
-                                        figure={},
-                                        style={'width':'100px'}),
-                            ]),
+                            dcc.Graph(id="multiplicity-allele-fraction-graph", figure={})
                         ]),   
                     ]
                 )
@@ -460,8 +444,7 @@ def gen_absolute_precalled_solutions_report_component():
             Output('absolute-rdata-select-table', 'selected_rows'),
             Output('absolute-rdata-select-table', 'data'),
             Output('cnp-graph', 'figure'),
-            Output('mut-graph', 'figure'),
-            Output('allele-fraction-graph', 'figure'),
+            Output('multiplicity-allele-fraction-graph', 'figure'),
             Output('absolute-purity', 'children'),
             Output('absolute-ploidy', 'children'),
             Output('absolute-solution-idx', 'children'),
