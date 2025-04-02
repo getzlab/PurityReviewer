@@ -33,6 +33,10 @@ setuptools.setup(
                         'firecloud-dalmatian==0.0.18',
                         'cnv_suite',
                         'numpy==1.26.0',
+                        'firecloud-dalmatian',
+                        'jupyter',
+                        'scipy',
+                        'sklearn'
                         'jupyter'
                        ]
 )   

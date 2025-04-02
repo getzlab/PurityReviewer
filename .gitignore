@@ -1,14 +1,22 @@
 *.idea/*
 *.egg-info*
-*__pychache__*
-*/data/*
-__pychache__
+*__pycache__*
+*PurityReviewer/AppComponents/__pycache__*
 .ipynb_checkpoints
 *local_rdata*
-*precaled_purity_venv*
-*__pycache__*
+*precalled_purity_venv*
 *precalled_purity_reviewer_output*
+<<<<<<< HEAD
+*example_notebooks/data/review_data.pkl*
+*example_notebooks/matched_purity_reviwer_output*
+*example_notebooks/data/review_data.pkl
+*example_notebooks/debug_af_beta_distr.pickle
+*example_notebooks/debug_multiplicity.pickle
+*example_notebooks/allele_fraction.pickle
+*PurityReviewer/AppComponents/__pycache__/AbsoluteSolutionsReportComponent.cpython-39.pyc
+=======
 .DS_Store
 .vscode/
 *venv/
 
+>>>>>>> 97870bdd426a0cd44cd78f9af80203c19b12999d

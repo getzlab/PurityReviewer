@@ -8,21 +8,10 @@ from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 
-from AnnoMate.Data import Data, DataAnnotation
-from AnnoMate.ReviewDataApp import ReviewDataApp, AppComponent
+from AnnoMate.ReviewDataApp import AppComponent
 from AnnoMate.DataTypes.GenericData import GenericData
-from cnv_suite.visualize import plot_acr_interactive
-from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity
-
-from rpy2.robjects import r, pandas2ri
-import rpy2.robjects as robjects
-import os
-import pickle
-from typing import Union, List, Dict
-import sys
-from cnv_suite import calc_cn_levels
+from PurityReviewer.AppComponents.utils import gen_cnp_figure, gen_mut_figure, CSIZE_DEFAULT, parse_absolute_soln, calculate_multiplicity, gen_mut_allele_fraction_plot, gen_mult_allele_subplots
 import pandas as pd
-import numpy as np
 
 PRECALLED_SLIDER_VALUES = ["Use slider", "Select All"]
 absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
@@ -121,6 +110,8 @@ def gen_absolute_solutions_report_range_of_precalled_component(
     int
         Index of the current ABSOLUTE solution. For new data, it is set to the first solution 0
     """  
+    multiplicity_allele_subplots_fig = go.Figure()
+
     # checks if you are loading in the data for the first time (new data callback)
     if not internal_callback:
         slider_value = 5
@@ -147,11 +138,11 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         # checks to make sure purity value isn't greater than 100%
         if purity_range_upper > 100:
             purity_range_upper = 100
-        
-    # from absolute solutions report component gen_absolute_solutions_report_new_data
+    
     parse_absolute_soln_func = custom_parse_absolute_soln if custom_parse_absolute_soln is not None else parse_absolute_soln
+
     try:
-        absolute_rdata_df,maf,maf_annot_list = parse_absolute_soln_func(pairs_data_row[rdata_fn_col])
+        absolute_rdata_df, maf, maf_annot_list = parse_absolute_soln_func(pairs_data_row[rdata_fn_col])
     except Exception as e:
         print(e)
         print("excepted error and initialized empty dataframes")
@@ -163,7 +154,6 @@ def gen_absolute_solutions_report_range_of_precalled_component(
 
     # add 1 and 0 lines
     cnp_fig_with_lines = go.Figure(cnp_fig)
-    
     purity = 0
     ploidy = 0
 
@@ -189,14 +179,13 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         purity = solution_data['alpha']
         ploidy = solution_data[purity_column]
 
-        maf_soln['multiplicity'] = calculate_multiplicity(maf_soln,purity)
+        maf_soln['multiplicity'] = calculate_multiplicity(maf_soln, purity)
         mut_fig = gen_mut_figure(maf_soln, hover_data=mut_fig_hover_data, csize=CSIZE_DEFAULT)
         mut_fig_with_lines = go.Figure(mut_fig)
-        for yval in [1,2]:
-            mut_fig_with_lines.add_hline(y=yval,
-                                    line_dash="dash",
-                                    line_color='black',
-                                    line_width=1)
+        allele_fraction_fig = gen_mut_allele_fraction_plot(maf_soln)
+        
+    # create a subplots with multiplicity plot on left and allele fraction plot on right
+    multiplicity_allele_subplots_fig = gen_mult_allele_subplots(mut_fig_with_lines, allele_fraction_fig, csize=CSIZE_DEFAULT)
     
     return [
         5, # default range for the slider
@@ -204,7 +193,7 @@ def gen_absolute_solutions_report_range_of_precalled_component(
         [0], # default selected row is first row in table
         absolute_rdata_within_range_df.to_dict('records'),
         cnp_fig_with_lines, 
-        mut_fig_with_lines,
+        multiplicity_allele_subplots_fig,
         purity,
         ploidy, 
         1 # defaults to having the 1st copy number profile 
@@ -349,7 +338,6 @@ def gen_absolute_precalled_solution_report_layout():
                     dbc.Row([
                         html.Div(
                             [
-                                # might need to make a column or do inline component
                                 dbc.Label("Current Purity Value: "),
                                 html.Label(children="", id="current-purity-value"), # initialize label to empty string
                             ])
@@ -357,7 +345,6 @@ def gen_absolute_precalled_solution_report_layout():
                     dbc.Row(
                         [
                             # creating a horizontal slider for selecting a range of purity values
-                            # try to find parameter that snaps to whole integer, multiples of 5
                             dcc.Slider(
                                 id='custom-precalled-slider', 
                                 min=0.0, 
@@ -369,7 +356,8 @@ def gen_absolute_precalled_solution_report_layout():
                             )
                         ], 
                     ),
-                    # displays the absolute solutions report
+
+                # displays the absolute solutions report
                 html.Div(
                     children=[
                         html.H2('Absolute Solutions Table'),
@@ -417,11 +405,13 @@ def gen_absolute_precalled_solution_report_layout():
                                 html.P(0, id='absolute-ploidy',
                                         style={'display': 'inline'})]),
                         dcc.Graph(id='cnp-graph', figure={}),
-                        dcc.Graph(id='mut-graph', figure={})
+
+                        dbc.Row([
+                            dcc.Graph(id="multiplicity-allele-fraction-graph", figure={})
+                        ]),   
                     ]
                 )
-            ],
-                  
+            ],       
         )
     ]
 
@@ -454,7 +444,7 @@ def gen_absolute_precalled_solutions_report_component():
             Output('absolute-rdata-select-table', 'selected_rows'),
             Output('absolute-rdata-select-table', 'data'),
             Output('cnp-graph', 'figure'),
-            Output('mut-graph', 'figure'),
+            Output('multiplicity-allele-fraction-graph', 'figure'),
             Output('absolute-purity', 'children'),
             Output('absolute-ploidy', 'children'),
             Output('absolute-solution-idx', 'children'),

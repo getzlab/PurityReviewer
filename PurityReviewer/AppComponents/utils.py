@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from functools import lru_cache
 import dalmatian
+from scipy.stats import beta
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -14,7 +15,6 @@ from cnv_suite import calc_avg_cn
 from natsort import natsorted
 
 from AnnoMate.AppComponents.utils import freezeargs, cached_read_csv
-
 
 CSIZE_DEFAULT = {'1': 249250621, '2': 243199373, '3': 198022430, '4': 191154276, '5': 180915260,
                  '6': 171115067, '7': 159138663, '8': 146364022, '9': 141213431, '10': 135534747,
@@ -43,7 +43,6 @@ def get_cum_sum_csize(csize):
         cum_sum_csize[chrom] = cum_sum
         cum_sum += size
     return cum_sum_csize
-
 
 def plot_cnp_histogram(
     seg_df,
@@ -122,7 +121,6 @@ def plot_cnp_histogram(
     fig.update_layout(showlegend=False)
     return fig
 
-
 #@freezeargs
 #@lru_cache(maxsize=32)
 def gen_mut_figure(maf_df,
@@ -186,8 +184,6 @@ def gen_mut_figure(maf_df,
     maf_df[chromosome_col] = maf_df[chromosome_col].astype(str)
     
     maf_df['new_position'] = maf_df.apply(lambda r: cum_sum_csize[r[chromosome_col]] + r[start_position_col], axis=1)
-
-    #maf_df['tumor_f'] = maf_df[alt_count_col] / (maf_df[alt_count_col] + maf_df[ref_count_col])
     
     fig = px.scatter(maf_df, x='new_position', y='multiplicity', marginal_y='histogram', hover_data=hover_data)
 
@@ -203,11 +199,9 @@ def gen_mut_figure(maf_df,
         range=[0, chrom_start['Z']]
     )
     fig.update_xaxes(title_text="Chromosome")
-                      
-                      
     fig.update_yaxes(range=[0, 2.5])
 
-    final_fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_widths=[0.77, 0.25])
+    final_fig = make_subplots(rows=1,cols=2, shared_yaxes=True, column_widths=[0.77, 0.25])
     for t in fig.data:
         final_fig.add_trace(t, row=1, col=1)
 
@@ -215,9 +209,8 @@ def gen_mut_figure(maf_df,
     final_fig.update_xaxes(fig.layout.xaxis, row=1, col=1)
     final_fig.update_yaxes(fig.layout.yaxis, row=1, col=1)
     final_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
-    
-    return final_fig
 
+    return final_fig
 
 def gen_cnp_figure(acs_fn,
                    sigmas=True, 
@@ -258,7 +251,6 @@ def gen_cnp_figure(acs_fn,
         update_cnv_scatter_sigma_toggle(cnp_fig, sigmas)
 
     return cnp_fig
-
 
 @freezeargs
 @lru_cache(maxsize=32)
@@ -326,7 +318,6 @@ def _gen_cnp_figure_cache(acs_fn,
 
     return cnp_fig
 
-
 def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local path   
     """
     function to convert an rdata file from ABSOLUTE into a pandas dataframe
@@ -341,7 +332,6 @@ def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local pa
     pd.DataFrame
         Pandas dataframe of ABSOLUTE purity/ploidy solutions
     """
-    
     absolute_rdata_cols = ['alpha', 'tau', 'tau_hat', '0_line', '1_line',
                        'sigma_H', 
                        'theta_Q', 
@@ -353,9 +343,7 @@ def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local pa
     r_list_vector = robjects.r['load'](rdata_path)
     r_list_vector = robjects.r[r_list_vector[0]]
     r_data_id = r_list_vector.names[0]
-
     rdata_tables = r_list_vector.rx2(str(r_data_id))
-    
     mode_res = rdata_tables.rx2('mode.res')
     mode_tab = mode_res.rx2('mode.tab')
     mod_tab_df = pd.DataFrame(columns=absolute_rdata_cols)
@@ -376,26 +364,23 @@ def parse_absolute_soln(rdata_path: str) -> pd.DataFrame: # has to be a local pa
     maf_file = rdata_tables.rx2('mut.cn.dat')
     mut_annot_list = mode_res.rx2('modeled.muts')
 
-    return mod_tab_df,maf_file,mut_annot_list
+    return mod_tab_df, maf_file, mut_annot_list
 
-def calculate_multiplicity(maf,alpha):
+def calculate_multiplicity(maf_df, alpha):
     # Local copy number
-    q = maf['q_hat']
-    # Allele fraction
-    af = maf['alt']/(maf['alt']+maf['ref'])
+    q_values = maf_df['q_hat']
 
-    # af = (alpha * mult) / (alpha * q + (1-alpha)*2)
-    mult = af * (alpha*q + (1-alpha)*2) / alpha
+    # calculates Allele fraction
+    allele_fraction = maf_df['alt'] / (maf_df['alt']+maf_df['ref'])
+    multiplicities = allele_fraction * (alpha*q_values + (1-alpha)*2) / alpha
 
-    return(mult)
+    return(multiplicities)
 
 def validate_purity(x):
     return (x >=0) and (x <= 1)
 
-
 def validate_ploidy(x):
     return (x >=0)
-
 
 def download_data(file_to_download_path, full_local_path):
     """
@@ -478,3 +463,240 @@ def add_precalled_purities_to_pairs(pairs_df, sample_df, precalled_purity_col_nm
     pairs_with_precalled_purity_df = pairs_with_precalled_purity_df.rename(columns={precalled_purity_col_nm:'precalled_purity_values'})
 
     return pairs_with_precalled_purity_df
+
+def gen_mult_allele_subplots(
+    multiplicity_fig,
+    allele_fraction_fig,
+    csize=None
+):
+    """
+    Generates the plotly subplot for the multiplicity and allele fraction graphs
+
+    Parameters
+    ==========
+    multiplicity_fig: go.Figure
+        figure with the multiplicity data
+
+    allele_fraction_fig: go.Figure
+        figure with the allele fraction data
+
+    Return
+    ======
+    go.Figure    
+        subplot figure with both the multiplicity (col 1) and allele fraction (col 2) traces on it 
+    """
+    if csize is None:
+        csize = CSIZE_DEFAULT
+
+    multiplicity_allele_subplots_fig = go.Figure()
+
+    multiplicity_allele_subplots_fig = make_subplots(rows=1, cols=2, column_widths=[0.79, 0.25],
+                                                     subplot_titles=('Multiplicity Plot', 'Mutation Allele Fraction Plot'))
+
+    # Add traces from the first figure, mut_fig_with_lines, to the left subplot (row=1, col=1)
+    for trace in multiplicity_fig.data:
+        multiplicity_allele_subplots_fig.add_trace(trace, row=1, col=1)
+
+    # Add traces from the second figure, allele_fraction_fig, to the right subplot (row=1, col=2)
+    for trace in allele_fraction_fig.data:
+        multiplicity_allele_subplots_fig.add_trace(trace, row=1, col=2)
+
+    add_background(multiplicity_allele_subplots_fig, csize.keys(), csize, height=100, plotly_row=1, plotly_col=1)
+    multiplicity_allele_subplots_fig.update_xaxes(multiplicity_fig.layout.xaxis, row=1, col=1)
+    multiplicity_allele_subplots_fig.update_yaxes(multiplicity_fig.layout.yaxis, row=1, col=1)
+
+    for yval in [1,2]:
+        multiplicity_allele_subplots_fig.add_hline(y=yval, row=1,col=1, line_dash="dash", line_color='black', line_width=1)
+            
+    multiplicity_allele_subplots_fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
+    multiplicity_allele_subplots_fig.update_xaxes(allele_fraction_fig.layout.xaxis, row=1, col=2)
+    multiplicity_allele_subplots_fig.update_yaxes(allele_fraction_fig.layout.yaxis, row=1, col=2)
+
+    return multiplicity_allele_subplots_fig
+
+def gen_mut_allele_fraction_plot(
+        maf_df, 
+    ):
+    """ 
+    Generates the mutation allele fraction plot based on the maf file from absolute solutions report
+
+    Parameters
+    ==========
+    maf_df: pd.DataFrame
+        dataframe with the maf file mutation data
+
+    Return
+    ======
+        tuple
+            plotly.Figure
+                plot for the allele fraction for each mutation
+    """
+    clonal_probabilities = maf_df['Pr_somatic_clonal'].values
+    ssnv_skew = maf_df['SSNV_skew'].values[0]
+    alpha = maf_df['purity'].values[0]
+    line_colors = ["blue", "grey"]
+    n_grid = 300
+    allele_fraction_beta_distributions = get_mut_beta_densities(maf_df, n_grid)
+
+    # Creates a normalized distribition for plotting
+    normalized_values = np.linspace(1, n_grid, n_grid) / (n_grid + 1)
+    normalized_values_matrix = np.tile(normalized_values, (allele_fraction_beta_distributions.shape[0], 1))  # Repeat normalized distribution for each mutation
+    
+    # creates a figure with the probability distribution (individual and total subclonal and clonal)
+    fig = go.Figure()
+    fig = draw_mut_beta_densities(allele_fraction_beta_distributions, clonal_probabilities, line_colors)
+
+    # Add vertical lines for alpha / 2 and alpha * SSNV_skew / 2
+    fig.add_shape(
+        type='line',
+        x0=alpha / 2,
+        x1=alpha / 2,
+        y0=0,
+        y1=1,
+        line=dict(color="green", dash='dot', width=2),
+        name="alpha / 2"
+    )
+    fig.add_annotation(
+        x=alpha / 2,
+        y=1.15,
+        text='alpha / 2',
+        showarrow=False,
+        font=dict(color="black")
+    )
+
+    fig.add_shape(
+        type='line',
+        x0=alpha * ssnv_skew / 2,
+        x1=alpha * ssnv_skew / 2,
+        y0=0,
+        y1=1,
+        line=dict(color='grey', dash='dot', width=2),
+        name="alpha * f_s / 2"
+    )
+    fig.add_annotation(
+        x=alpha * ssnv_skew / 2,
+        y=1.05,
+        text='f_s * alpha / 2',
+        showarrow=False,
+        font=dict(color='black')
+    )
+
+    # Update layout of the figure
+    fig.update_layout(
+        title="Mutation Allele Fraction Plot",
+        yaxis=dict(title="Density"),
+        template="plotly_white",
+        xaxis_range=[0, 1],
+        yaxis_range=[0, 1.2],
+        xaxis=dict(
+            title="Fraction of Alternate Reads",
+            tickvals=[i/10 for i in range(0, 11, 2)],  # Set the tick positions on the x axis
+            ticktext=[f"{i/10}" for i in range(0, 11, 2)]),  # Set the labels for those tick positions on the x axis
+        showlegend=False,
+        width=400,
+    )
+
+    return fig
+
+def draw_mut_beta_densities(
+        af_beta_distributions, 
+        clonal_probabilities, 
+        line_colors
+    ):
+    """ 
+    Creates the mutation beta densities lines on the plotly figure
+
+    Parameters
+    ==========
+    af_beta_distributions: 2D numpy array
+        beta distribution for each mutations allele fraction 
+
+    clonal_probabilities: 1D numpy array
+        probability of a mutation being clonal
+
+    line_colors: list ["blue", "grey]
+        colors for the total clonal and subclonal lines
+
+    Return
+    ======
+        plotly.Figure
+            plot for the allele fraction for each mutation
+    """
+    n_grid = af_beta_distributions.shape[1]
+    normalized_values = np.arange(1, n_grid + 1) / (n_grid + 1)  # normalizing based on the number of columns in the beta distributions
+    
+    subclonal_probabilities = 1 - clonal_probabilities
+    subclonal_probabilities[subclonal_probabilities < 0] = 0  # Fix round-off error
+    
+    # Set up the plot
+    fig = go.Figure()
+
+    clonal_probabilities_vector = np.reshape(clonal_probabilities, (clonal_probabilities.shape[0], 1))
+    subclonal_probabilities_vector = np.reshape(subclonal_probabilities, (subclonal_probabilities.shape[0], 1))
+
+    clonal_probabilities_vector = np.nan_to_num(clonal_probabilities_vector)
+    subclonal_probabilities_vector = np.nan_to_num(subclonal_probabilities_vector)
+    af_beta_distributions = np.nan_to_num(af_beta_distributions)
+
+    # calculates the clonal and subclonal distributions
+    clonal_distributions = af_beta_distributions * clonal_probabilities_vector
+    subclonal_distributions = af_beta_distributions * subclonal_probabilities_vector
+    
+    # Plots the normalized total sum of subclonal distributions
+    fig.add_trace(go.Scatter(
+        x=normalized_values,
+        y=np.sum(subclonal_distributions, axis=0) / np.max(np.sum(subclonal_distributions, axis=0)), # normalized sum of each subclonal distribution 
+        mode='lines',
+        line=dict(color=line_colors[0], dash='dash'),
+        name="Subclonal Total"
+    ))
+
+    # Plots the normalized total sum of clonal distributions
+    fig.add_trace(go.Scatter(
+        x=normalized_values,
+        y=np.sum(clonal_distributions, axis=0) / np.max(np.sum(clonal_distributions, axis=0)), # normalized sum of each clonal distribution 
+        mode='lines',
+        line=dict(color=line_colors[1], dash='dash'),
+        name="Clonal Total"
+    ))
+    
+    return fig
+
+def get_mut_beta_densities(
+        maf_df, 
+        n_cols=100
+    ):
+    """
+    Calculates the beta distributions for each mutation
+
+    Parameters
+    ==========
+    maf_df: pd.DataFrame
+        maf mutation data
+
+    n_cols: int
+        number of columns in the beta distribution matrix 
+
+    Return
+    ======
+    2D numpy array
+    """
+    # Initialize mutation grid with zeros
+    mut_grid = np.zeros((maf_df.shape[0], n_cols))
+    
+    # Calculate coverage and allele frequency
+    total_num_reads = maf_df["alt"] + maf_df["ref"]
+    allele_fraction = maf_df["alt"] / total_num_reads
+    uniform_vals = np.linspace(0, 1, n_cols)
+    
+    # Calculate beta densities for each mutation
+    for i in range(maf_df.shape[0]):
+        alpha_parameter = total_num_reads[i] * allele_fraction[i] + 1 
+        beta_parameter = total_num_reads[i] * (1 - allele_fraction[i]) + 1
+        mut_grid[i, :] = beta.pdf(uniform_vals, alpha_parameter, beta_parameter) * 1 / n_cols  # calculates and normalizes the beta distribution 
+    
+    # Check for NaN values
+    if np.any(np.isnan(mut_grid)):
+        raise ValueError("NaN values detected in the mutation grid")
+    
+    return mut_grid
